@@ -9,6 +9,8 @@ import { marketplaceRoutes } from "./routes/marketplace";
 
 import { messageRoutes } from "./routes/messages";
 
+import { accountabilityRoutes } from "./routes/accountability";
+
 type Variables = {
 	user: typeof auth.$Infer.Session.user | undefined;
 	session: typeof auth.$Infer.Session.session | undefined;
@@ -29,6 +31,7 @@ app.route("/api/ngo", ngoRoutes);
 app.route("/api/admin", adminRoutes);
 app.route("/api/marketplace", marketplaceRoutes);
 app.route("/api/messages", messageRoutes);
+app.route("/api/accountability", accountabilityRoutes);
 
 // Root Route
 app.get("/", (c) => {
