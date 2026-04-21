@@ -1,8 +1,8 @@
 import { Geist, Geist_Mono } from "next/font/google";
-
 import "@impact/ui/globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { cn } from "@impact/ui/lib/utils";
+import { Toaster } from "@impact/ui/components/sonner";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -23,7 +23,10 @@ export default function RootLayout({
       className={cn("antialiased", fontMono.variable, "font-sans", geist.variable)}
     >
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          {children}
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );
