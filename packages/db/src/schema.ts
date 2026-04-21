@@ -1,4 +1,5 @@
 import { pgTable, text, integer, timestamp, boolean, varchar, pgEnum, numeric, jsonb } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 
 // Enums
 export const roleEnum = pgEnum("role", ["admin", "user", "ngo"]);
@@ -159,3 +160,48 @@ export const messages = pgTable("messages", {
   content: varchar("content", { length: 500 }).notNull(), // Heavily limited character DM
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// Relations
+export const userRelations = relations(user, ({ one, many }) => ({
+  ngo: one(ngo, {
+    fields: [user.id],
+    references: [ngo.userId],
+  }),
+  tenders: many(tenders),
+  comments: many(comments),
+  sentMessages: many(messages, { relationName: "sentMessages" }),
+  receivedMessages: many(messages, { relationName: "receivedMessages" }),
+}));
+
+export const ngoRelations = relations(ngo, ({ one, many }) => ({
+  user: one(user, {
+    fields: [ngo.userId],
+    references: [user.id],
+  }),
+  drives: many(drives),
+}));
+
+export const tenderRelations = relations(tenders, ({ one, many }) => ({
+  user: one(user, {
+    fields: [tenders.userId],
+    references: [user.id],
+  }),
+  category: one(categories, {
+    fields: [tenders.categoryId],
+    references: [categories.id],
+  }),
+  comments: many(comments),
+}));
+
+export const driveRelations = relations(drives, ({ one, many }) => ({
+  ngo: one(ngo, {
+    fields: [drives.ngoId],
+    references: [ngo.id],
+  }),
+  updates: many(driveUpdates),
+  comments: many(comments),
+}));
+
+export const categoryRelations = relations(categories, ({ many }) => ({
+  tenders: many(tenders),
+}));
