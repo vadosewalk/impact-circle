@@ -10,16 +10,23 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@impact/db": "workspace:*",
     "@impact/ui": "workspace:*",
+    "@tanstack/db": "^0.6.5",
+    "@tanstack/react-db": "^0.1.83",
+    "@tanstack/react-query": "^5.99.2",
+    "better-auth": "^1.6.5",
+    "hono": "^4.12.14",
     "lucide-react": "^1.8.0",
     "next": "16.2.4",
     "next-themes": "^0.4.6",
     "react": "^19.2.5",
-    "react-dom": "^19.2.5"
+    "react-dom": "^19.2.5",
+    "zustand": "^5.0.12"
   },
   "devDependencies": {
     "@impact/typescript-config": "workspace:*",
-    "@tailwindcss/postcss": "^4.2.3",
+    "@tailwindcss/postcss": "^4.2.4",
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
