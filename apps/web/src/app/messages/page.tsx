@@ -7,7 +7,7 @@ import { Button } from "@impact/ui/components/button";
 import { Input } from "@impact/ui/components/input";
 import { Badge } from "@impact/ui/components/badge";
 import { ScrollArea } from "@impact/ui/components/scroll-area";
-import { toast } from "sonner";
+import { toast } from "@impact/ui/components/sonner";
 import { useRouter } from "next/navigation";
 import { Send, User, Clock } from "lucide-react";
 

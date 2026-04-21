@@ -80,6 +80,8 @@ export const ngo = pgTable("ngo", {
   address: text("address"),
   registrationNumber: text("registration_number"),
   flags: integer("flags").default(0).notNull(),
+  auditMeetLink: text("audit_meet_link"),
+  auditScheduledAt: timestamp("audit_scheduled_at"),
   documents: jsonb("documents"), // JSON of document metadata/URLs
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -91,6 +93,23 @@ export const categories = pgTable("categories", {
   description: text("description"),
   isCustom: boolean("is_custom").default(false).notNull(),
   status: categoryStatusEnum("status").default("approved").notNull(), // Default to approved for core
+  requestedByNgoId: text("requested_by_ngo_id").references(() => ngo.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const polls = pgTable("polls", {
+  id: text("id").primaryKey(),
+  categoryId: text("category_id")
+    .notNull()
+    .references(() => categories.id),
+  title: text("title").notNull(),
+  description: text("description"),
+  votesFor: integer("votes_for").default(0).notNull(),
+  votesAgainst: integer("votes_against").default(0).notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  status: text("status", { enum: ["active", "passed", "rejected"] })
+    .default("active")
+    .notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -108,9 +127,28 @@ export const tenders = pgTable("tenders", {
   urgency: urgencyEnum("urgency").default("normal").notNull(),
   latitude: numeric("latitude"),
   longitude: numeric("longitude"),
+
+  // Resource Pooling
+  targetAmount: numeric("target_funds"),
+  currentAmount: numeric("current_funds").default("0"),
+  targetVolunteers: integer("target_volunteers"),
+  currentVolunteers: integer("current_volunteers").default(0),
+
   claimedById: text("claimed_by_id").references(() => user.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const beneficiaryUpdates = pgTable("beneficiary_updates", {
+  id: text("id").primaryKey(),
+  tenderId: text("tender_id")
+    .notNull()
+    .references(() => tenders.id),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const drives = pgTable("drives", {
@@ -136,6 +174,7 @@ export const driveUpdates = pgTable("drive_updates", {
   driveId: text("drive_id")
     .notNull()
     .references(() => drives.id),
+  userId: text("user_id").references(() => user.id), // The NGO user who posted it
   content: text("content").notNull(),
   images: jsonb("images"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -166,11 +205,9 @@ export const messages = pgTable("messages", {
 
 // Relations
 export const userRelations = relations(user, ({ one, many }) => ({
-  ngo: one(ngo, {
-    fields: [user.id],
-    references: [ngo.userId],
-  }),
+  ngo: many(ngo), // NGO ownership (one user can manage multiple technically, but we use firstFirst)
   tenders: many(tenders),
+  beneficiaryUpdates: many(beneficiaryUpdates),
   claimedTenders: many(tenders, { relationName: "claimedBy" }),
   comments: many(comments),
   sentMessages: many(messages, { relationName: "sentMessages" }),
@@ -183,6 +220,7 @@ export const ngoRelations = relations(ngo, ({ one, many }) => ({
     references: [user.id],
   }),
   drives: many(drives),
+  requestedCategories: many(categories),
 }));
 
 export const tenderRelations = relations(tenders, ({ one, many }) => ({
@@ -200,7 +238,15 @@ export const tenderRelations = relations(tenders, ({ one, many }) => ({
     fields: [tenders.categoryId],
     references: [categories.id],
   }),
+  updates: many(beneficiaryUpdates),
   comments: many(comments),
+}));
+
+export const pollRelations = relations(polls, ({ one }) => ({
+  category: one(categories, {
+    fields: [polls.categoryId],
+    references: [categories.id],
+  }),
 }));
 
 export const driveRelations = relations(drives, ({ one, many }) => ({
@@ -212,6 +258,14 @@ export const driveRelations = relations(drives, ({ one, many }) => ({
   comments: many(comments),
 }));
 
-export const categoryRelations = relations(categories, ({ many }) => ({
+export const categoryRelations = relations(categories, ({ one, many }) => ({
   tenders: many(tenders),
+  requestedBy: one(ngo, {
+    fields: [categories.requestedByNgoId],
+    references: [ngo.id],
+  }),
+  poll: one(polls, {
+    fields: [categories.id],
+    references: [polls.categoryId],
+  }),
 }));

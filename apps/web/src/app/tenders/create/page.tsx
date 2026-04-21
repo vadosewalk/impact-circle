@@ -10,7 +10,7 @@ import { Textarea } from "@impact/ui/components/textarea";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@impact/ui/components/card";
 import { FieldGroup, Field, FieldLabel, FieldDescription } from "@impact/ui/components/field";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@impact/ui/components/select";
-import { toast } from "sonner";
+import { toast } from "@impact/ui/components/sonner";
 import { AlertCircle, MapPin } from "lucide-react";
 
 export default function CreateTenderPage() {

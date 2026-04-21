@@ -7,7 +7,7 @@ import { Button } from "@impact/ui/components/button";
 import { Input } from "@impact/ui/components/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@impact/ui/components/card";
 import { FieldGroup, Field, FieldLabel, FieldError } from "@impact/ui/components/field";
-import { toast } from "sonner";
+import { toast } from "@impact/ui/components/sonner";
 import Link from "next/link";
 
 export default function SignInPage() {

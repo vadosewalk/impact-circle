@@ -1,6 +1,6 @@
 import { authClient } from "./auth-client";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
+const API_URL = "";
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const session = await authClient.getSession();
