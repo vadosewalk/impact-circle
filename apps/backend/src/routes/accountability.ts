@@ -17,7 +17,10 @@ accountabilityRoutes.post("/flag", requireAuth, async (c) => {
 	
 	if (targetType === "user") {
 		await db.update(user)
-			.set({ flags: sql`${user.flags} + 1` })
+			.set({ 
+				flags: sql`${user.flags} + 1`,
+				trustScore: sql`${user.trustScore} - 30` // TRUST SCORE: -30 for being flagged
+			})
 			.where(eq(user.id, targetId));
 		
 		// Check for 3 strikes
@@ -26,13 +29,24 @@ accountabilityRoutes.post("/flag", requireAuth, async (c) => {
 		});
 		
 		if (updatedUser && updatedUser.flags >= 3) {
-			// Suspend or mark for admin review
+			// Auto-suspend user logic could go here
 			console.log(`User ${targetId} has 3 strikes!`);
 		}
 	} else if (targetType === "ngo") {
+		const ngoRecord = await db.query.ngo.findFirst({
+			where: eq(ngo.id, targetId),
+		});
+
+		if (!ngoRecord) return c.json({ message: "NGO not found" }, 404);
+
 		await db.update(ngo)
 			.set({ flags: sql`${ngo.flags} + 1` })
 			.where(eq(ngo.id, targetId));
+		
+		// Reduce trust score of the user who owns the NGO
+		await db.update(user)
+			.set({ trustScore: sql`${user.trustScore} - 30` }) // TRUST SCORE: -30 for being flagged
+			.where(eq(user.id, ngoRecord.userId));
 		
 		const updatedNgo = await db.query.ngo.findFirst({
 			where: eq(ngo.id, targetId),
@@ -45,7 +59,7 @@ accountabilityRoutes.post("/flag", requireAuth, async (c) => {
 		}
 	}
 
-	return c.json({ message: "Flagged successfully" });
+	return c.json({ message: "Flagged successfully. Trust score reduced." });
 });
 
 export { accountabilityRoutes };

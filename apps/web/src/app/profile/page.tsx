@@ -28,7 +28,6 @@ export default function ProfilePage() {
 	const fetchClaimedTenders = async () => {
 		try {
 			const allTenders: any = await api.get("/api/marketplace/tenders");
-			// In a real app, we'd have a specific endpoint for this
 			setClaimedTenders(allTenders.filter((t: any) => t.claimedById === session?.user.id));
 		} catch (err) {
 			console.error("Failed to fetch claimed tenders");
@@ -39,8 +38,8 @@ export default function ProfilePage() {
 
 	const handleFulfillTender = async (tenderId: string) => {
 		try {
-			await api.post(`/api/marketplace/tenders/${tenderId}/fulfill`, {});
-			toast.success("Tender marked as fulfilled! Loop closed.");
+			const res: any = await api.post(`/api/marketplace/tenders/${tenderId}/fulfill`, {});
+			toast.success(res.message || "Tender marked as fulfilled! Loop closed.");
 			fetchClaimedTenders();
 		} catch (err: any) {
 			toast.error(err.message || "Failed to fulfill tender");
