@@ -1,8 +1,161 @@
-import { integer, pgTable, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, timestamp, boolean, varchar, pgEnum, numeric, jsonb } from "drizzle-orm/pg-core";
 
-export const usersTable = pgTable("users", {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  name: varchar({ length: 255 }).notNull(),
-  age: integer().notNull(),
-  email: varchar({ length: 255 }).notNull().unique(),
+// Enums
+export const roleEnum = pgEnum("role", ["admin", "user", "ngo"]);
+export const ngoStatusEnum = pgEnum("ngo_status", ["pending", "verified", "rejected"]);
+export const tenderStatusEnum = pgEnum("tender_status", ["open", "fulfilled", "cancelled"]);
+export const driveStatusEnum = pgEnum("drive_status", ["open", "completed", "cancelled"]);
+export const urgencyEnum = pgEnum("urgency", ["normal", "urgent"]);
+export const categoryStatusEnum = pgEnum("category_status", ["pending", "approved", "rejected"]);
+
+// Better Auth Tables
+export const user = pgTable("user", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  emailVerified: boolean("email_verified").notNull(),
+  image: text("image"),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
+
+  // Impact Circle Extensions
+  role: roleEnum("role").default("user").notNull(),
+  trustScore: integer("trust_score").default(0).notNull(),
+  bio: text("bio"),
+});
+
+export const session = pgTable("session", {
+  id: text("id").primaryKey(),
+  expiresAt: timestamp("expires_at").notNull(),
+  token: text("token").notNull().unique(),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id),
+});
+
+export const account = pgTable("account", {
+  id: text("id").primaryKey(),
+  accountId: text("account_id").notNull(),
+  providerId: text("provider_id").notNull(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id),
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  idToken: text("id_token"),
+  accessTokenExpiresAt: timestamp("access_token_expires_at"),
+  refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
+  scope: text("scope"),
+  password: text("password"),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
+});
+
+export const verification = pgTable("verification", {
+  id: text("id").primaryKey(),
+  identifier: text("identifier").notNull(),
+  value: text("value").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at"),
+  updatedAt: timestamp("updated_at"),
+});
+
+// Impact Circle Business Logic Tables
+
+export const ngo = pgTable("ngo", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  status: ngoStatusEnum("status").default("pending").notNull(),
+  geoRadius: integer("geo_radius"), // in kilometers
+  address: text("address"),
+  registrationNumber: text("registration_number"),
+  documents: jsonb("documents"), // JSON of document metadata/URLs
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const categories = pgTable("categories", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  isCustom: boolean("is_custom").default(false).notNull(),
+  status: categoryStatusEnum("status").default("approved").notNull(), // Default to approved for core
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const tenders = pgTable("tenders", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  categoryId: text("category_id")
+    .notNull()
+    .references(() => categories.id),
+  status: tenderStatusEnum("status").default("open").notNull(),
+  urgency: urgencyEnum("urgency").default("normal").notNull(),
+  latitude: numeric("latitude"),
+  longitude: numeric("longitude"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const drives = pgTable("drives", {
+  id: text("id").primaryKey(),
+  ngoId: text("ngo_id")
+    .notNull()
+    .references(() => ngo.id),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  targetFunds: numeric("target_funds"),
+  currentFunds: numeric("current_funds").default("0"),
+  targetVolunteers: integer("target_volunteers"),
+  currentVolunteers: integer("current_volunteers").default(0),
+  status: driveStatusEnum("status").default("open").notNull(),
+  latitude: numeric("latitude"),
+  longitude: numeric("longitude"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const driveUpdates = pgTable("drive_updates", {
+  id: text("id").primaryKey(),
+  driveId: text("drive_id")
+    .notNull()
+    .references(() => drives.id),
+  content: text("content").notNull(),
+  images: jsonb("images"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const comments = pgTable("comments", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id),
+  tenderId: text("tender_id").references(() => tenders.id),
+  driveId: text("drive_id").references(() => drives.id),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const messages = pgTable("messages", {
+  id: text("id").primaryKey(),
+  senderId: text("sender_id")
+    .notNull()
+    .references(() => user.id),
+  receiverId: text("receiver_id")
+    .notNull()
+    .references(() => user.id),
+  content: varchar("content", { length: 500 }).notNull(), // Heavily limited character DM
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
