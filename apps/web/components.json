@@ -15,8 +15,8 @@
   "menuAccent": "subtle",
   "aliases": {
     "components": "@/components",
-    "utils": "@expent/ui/lib/utils",
-    "ui": "@expent/ui/components",
+    "utils": "@impact/ui/lib/utils",
+    "ui": "@impact/ui/components",
     "lib": "@/lib",
     "hooks": "@/hooks"
   },
