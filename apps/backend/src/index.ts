@@ -2,10 +2,16 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { auth } from "./lib/auth";
 import { sessionMiddleware } from "./middleware/auth";
+import { ngoRoutes } from "./routes/ngo";
+import { adminRoutes } from "./routes/admin";
+
+import { marketplaceRoutes } from "./routes/marketplace";
+
+import { messageRoutes } from "./routes/messages";
 
 type Variables = {
-  user: typeof auth.$Infer.Session.user | undefined;
-  session: typeof auth.$Infer.Session.session | undefined;
+	user: typeof auth.$Infer.Session.user | undefined;
+	session: typeof auth.$Infer.Session.session | undefined;
 };
 
 const app = new Hono<{ Variables: Variables }>();
@@ -15,11 +21,18 @@ app.use("*", sessionMiddleware);
 
 // Better Auth Route Handler
 app.on(["POST", "GET"], "/api/auth/*", (c) => {
-  return auth.handler(c.req.raw);
+	return auth.handler(c.req.raw);
 });
+
+// App Routes
+app.route("/api/ngo", ngoRoutes);
+app.route("/api/admin", adminRoutes);
+app.route("/api/marketplace", marketplaceRoutes);
+app.route("/api/messages", messageRoutes);
 
 // Root Route
 app.get("/", (c) => {
+
   return c.json({
     message: "Impact Circle API is running!",
     status: "ok",
