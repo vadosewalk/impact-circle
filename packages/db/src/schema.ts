@@ -22,6 +22,7 @@ export const user = pgTable("user", {
   // Impact Circle Extensions
   role: roleEnum("role").default("user").notNull(),
   trustScore: integer("trust_score").default(0).notNull(),
+  flags: integer("flags").default(0).notNull(),
   bio: text("bio"),
 });
 
@@ -78,6 +79,7 @@ export const ngo = pgTable("ngo", {
   geoRadius: integer("geo_radius"), // in kilometers
   address: text("address"),
   registrationNumber: text("registration_number"),
+  flags: integer("flags").default(0).notNull(),
   documents: jsonb("documents"), // JSON of document metadata/URLs
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
