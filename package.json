@@ -1,0 +1,23 @@
+{
+  "name": "impact-circle",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "check": "biome check --no-errors-on-unmatched --files-ignore-unknown=true",
+    "lint": "biome lint --write --no-errors-on-unmatched",
+    "fmt": "biome format --write --no-errors-on-unmatched",
+    "typecheck": "turbo typecheck"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.12",
+    "@impact/typescript-config": "workspace:*",
+    "turbo": "^2.9.6",
+    "typescript": "6.0.3"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=24"
+  }
+}

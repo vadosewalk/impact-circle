@@ -1,0 +1,35 @@
+{
+  "format_on_save": "on",
+
+  "languages": {
+    "JavaScript": {
+      "format_on_save": "on",
+      "formatter": {
+        "external": {
+          "command": "biome",
+          "arguments": ["format", "--stdin-filepath", "{buffer_path}"]
+        }
+      }
+    },
+
+    "TypeScript": {
+      "format_on_save": "on",
+      "formatter": {
+        "external": {
+          "command": "biome",
+          "arguments": ["format", "--stdin-filepath", "{buffer_path}"]
+        }
+      }
+    },
+
+    "JSON": {
+      "format_on_save": "on",
+      "formatter": {
+        "external": {
+          "command": "biome",
+          "arguments": ["format", "--stdin-filepath", "{buffer_path}"]
+        }
+      }
+    }
+  }
+}
