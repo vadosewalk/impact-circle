@@ -4,7 +4,7 @@ import { relations } from "drizzle-orm";
 // Enums
 export const roleEnum = pgEnum("role", ["admin", "user", "ngo"]);
 export const ngoStatusEnum = pgEnum("ngo_status", ["pending", "verified", "rejected"]);
-export const tenderStatusEnum = pgEnum("tender_status", ["open", "fulfilled", "cancelled"]);
+export const tenderStatusEnum = pgEnum("tender_status", ["open", "claimed", "fulfilled", "cancelled"]);
 export const driveStatusEnum = pgEnum("drive_status", ["open", "completed", "cancelled"]);
 export const urgencyEnum = pgEnum("urgency", ["normal", "urgent"]);
 export const categoryStatusEnum = pgEnum("category_status", ["pending", "approved", "rejected"]);
@@ -108,6 +108,7 @@ export const tenders = pgTable("tenders", {
   urgency: urgencyEnum("urgency").default("normal").notNull(),
   latitude: numeric("latitude"),
   longitude: numeric("longitude"),
+  claimedById: text("claimed_by_id").references(() => user.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -170,6 +171,7 @@ export const userRelations = relations(user, ({ one, many }) => ({
     references: [ngo.userId],
   }),
   tenders: many(tenders),
+  claimedTenders: many(tenders, { relationName: "claimedBy" }),
   comments: many(comments),
   sentMessages: many(messages, { relationName: "sentMessages" }),
   receivedMessages: many(messages, { relationName: "receivedMessages" }),
@@ -187,6 +189,12 @@ export const tenderRelations = relations(tenders, ({ one, many }) => ({
   user: one(user, {
     fields: [tenders.userId],
     references: [user.id],
+    relationName: "postedBy",
+  }),
+  claimedBy: one(user, {
+    fields: [tenders.claimedById],
+    references: [user.id],
+    relationName: "claimedBy",
   }),
   category: one(categories, {
     fields: [tenders.categoryId],

@@ -16,8 +16,17 @@ import {
 import { useSession } from "@/lib/auth-client";
 import { api } from "@/lib/api";
 import Link from "next/link";
-import { MapPin, Clock, MessageSquare, LayoutDashboard, MessageCircle, PlusCircle, Send } from "lucide-react";
-import { toast } from "sonner";
+import {
+  MapPin,
+  Clock,
+  MessageSquare,
+  LayoutDashboard,
+  MessageCircle,
+  PlusCircle,
+  Send,
+  CheckCircle2,
+} from "lucide-react";
+import { toast } from "@impact/ui/components/sonner";
 
 export default function HomePage() {
   const { data: session } = useSession();
@@ -73,6 +82,19 @@ export default function HomePage() {
       setText("");
     } catch (err: any) {
       toast.error(err.message || "Failed to send message");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleClaimTender = async (tenderId: string) => {
+    setIsSubmitting(true);
+    try {
+      await api.post(`/api/marketplace/tenders/${tenderId}/claim`, {});
+      toast.success("Handshake accepted! You have claimed this tender.");
+      fetchData(); // Refresh list
+    } catch (err: any) {
+      toast.error(err.message || "Failed to claim tender");
     } finally {
       setIsSubmitting(false);
     }
@@ -153,9 +175,9 @@ export default function HomePage() {
                   <CardContent className="flex-1">
                     <p className="text-sm text-muted-foreground line-clamp-3">{tender.description}</p>
                   </CardContent>
-                  <CardFooter className="pt-4 border-t flex gap-2">
+                  <CardFooter className="pt-4 border-t flex flex-wrap gap-2">
                     <Dialog>
-                      <DialogTrigger render={<Button size="sm" variant="ghost" className="flex-1" />}>
+                      <DialogTrigger render={<Button size="sm" variant="ghost" className="flex-1 min-w-[80px]" />}>
                         <MessageSquare className="size-4 mr-2" /> Clarify
                       </DialogTrigger>
                       <DialogContent>
@@ -180,17 +202,18 @@ export default function HomePage() {
                     </Dialog>
 
                     <Dialog>
-                      <DialogTrigger render={<Button size="sm" variant="outline" className="flex-1" />}>
+                      <DialogTrigger render={<Button size="sm" variant="outline" className="flex-1 min-w-[80px]" />}>
                         <Send className="size-4 mr-2" /> Handshake
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
-                          <DialogTitle>Direct Handshake</DialogTitle>
+                          <DialogTitle>Handshake Protocol</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
-                          <p className="text-sm text-muted-foreground italic">
-                            "This is a character-limited DM to exchange contact info."
-                          </p>
+                          <div className="p-3 bg-muted rounded-md text-xs">
+                            <p className="font-bold mb-1">Direct Handshake (Private)</p>
+                            <p>Exchange contact info via a character-limited DM to coordinate off-platform.</p>
+                          </div>
                           <textarea
                             className="w-full min-h-[80px] p-2 border rounded-md bg-background text-sm"
                             placeholder="e.g. I can help. Contact me at 9876..."
@@ -198,12 +221,38 @@ export default function HomePage() {
                             value={text}
                             onChange={(e) => setText(e.target.value)}
                           />
+                          <div className="flex justify-between items-center">
+                            <span className="text-[10px] text-muted-foreground">{text.length}/500</span>
+                            <Button size="sm" disabled={isSubmitting} onClick={() => handleSendMessage(tender.userId)}>
+                              Send DM
+                            </Button>
+                          </div>
+
+                          <div className="relative py-4">
+                            <div className="absolute inset-0 flex items-center">
+                              <span className="w-full border-t" />
+                            </div>
+                            <div className="relative flex justify-center text-xs uppercase">
+                              <span className="bg-background px-2 text-muted-foreground">Or</span>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <p className="text-sm font-bold">Claim Tender (Official)</p>
+                            <p className="text-xs text-muted-foreground">
+                              Mark this tender as "Claimed" to let the community know it's being handled. You'll be
+                              responsible for marking it as fulfilled later.
+                            </p>
+                            <Button
+                              className="w-full"
+                              variant="secondary"
+                              disabled={isSubmitting}
+                              onClick={() => handleClaimTender(tender.id)}
+                            >
+                              <CheckCircle2 className="size-4 mr-2" /> Accept Handshake & Claim
+                            </Button>
+                          </div>
                         </div>
-                        <DialogFooter>
-                          <Button disabled={isSubmitting} onClick={() => handleSendMessage(tender.userId)}>
-                            Send DM
-                          </Button>
-                        </DialogFooter>
                       </DialogContent>
                     </Dialog>
                   </CardFooter>
