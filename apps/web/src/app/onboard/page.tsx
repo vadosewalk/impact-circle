@@ -3,11 +3,12 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
+import { api } from "@/lib/api";
 import { Button } from "@impact/ui/components/button";
 import { Input } from "@impact/ui/components/input";
 import { Textarea } from "@impact/ui/components/textarea";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@impact/ui/components/card";
-import { FieldGroup, Field, FieldLabel, FieldError, FieldDescription } from "@impact/ui/components/field";
+import { FieldGroup, Field, FieldLabel, FieldDescription } from "@impact/ui/components/field";
 import { toast } from "sonner";
 
 export default function OnboardPage() {
@@ -34,20 +35,13 @@ export default function OnboardPage() {
 
   const fetchNgoStatus = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ngo/me`, {
-        headers: {
-          Authorization: `Bearer ${session?.session.token}`,
-        },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setStatus(data.status);
-        setNgoName(data.name);
-        setDescription(data.description);
-        setRegNumber(data.registrationNumber);
-        setGeoRadius(data.geoRadius.toString());
-        setAddress(data.address);
-      }
+      const data: any = await api.get("/api/ngo/me");
+      setStatus(data.status);
+      setNgoName(data.name);
+      setDescription(data.description);
+      setRegNumber(data.registrationNumber);
+      setGeoRadius(data.geoRadius.toString());
+      setAddress(data.address);
     } catch (err) {
       console.error("Failed to fetch NGO status");
     }
@@ -58,31 +52,19 @@ export default function OnboardPage() {
     setIsLoading(true);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ngo/onboard`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.session.token}`,
-        },
-        body: JSON.stringify({
-          name: ngoName,
-          description,
-          registrationNumber: regNumber,
-          geoRadius: parseInt(geoRadius),
-          address,
-          documents: [], // Placeholder for now
-        }),
+      await api.post("/api/ngo/onboard", {
+        name: ngoName,
+        description,
+        registrationNumber: regNumber,
+        geoRadius: parseInt(geoRadius),
+        address,
+        documents: [],
       });
 
-      if (res.ok) {
-        toast.success("Onboarding request submitted successfully");
-        setStatus("pending");
-      } else {
-        const data = await res.json();
-        toast.error(data.message || "Failed to submit request");
-      }
-    } catch (err) {
-      toast.error("An unexpected error occurred");
+      toast.success("Onboarding request submitted successfully");
+      setStatus("pending");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to submit request");
     } finally {
       setIsLoading(false);
     }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "@/lib/auth-client";
+import { api } from "@/lib/api";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@impact/ui/components/card";
 import { Button } from "@impact/ui/components/button";
 import { Badge } from "@impact/ui/components/badge";
@@ -10,12 +11,12 @@ import { useRouter } from "next/navigation";
 
 export default function AdminDashboard() {
   const { data: session, isPending } = useSession();
-  const [pendingNgos, setPendingNgos] = useState([]);
+  const [pendingNgos, setPendingNgos] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    if (!isPending && (!session || session.user.role !== "admin")) {
+    if (!isPending && (!session || (session.user as any).role !== "admin")) {
       router.push("/");
       return;
     }
@@ -27,14 +28,8 @@ export default function AdminDashboard() {
 
   const fetchPendingNgos = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/ngos/pending`, {
-        headers: {
-          Authorization: `Bearer ${session?.session.token}`,
-        },
-      });
-      if (res.ok) {
-        setPendingNgos(await res.json());
-      }
+      const data: any = await api.get("/api/admin/ngos/pending");
+      setPendingNgos(data);
     } catch (err) {
       toast.error("Failed to fetch pending NGOs");
     } finally {
@@ -44,23 +39,11 @@ export default function AdminDashboard() {
 
   const handleVerify = async (id: string, status: "verified" | "rejected") => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/ngos/${id}/status`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.session.token}`,
-        },
-        body: JSON.stringify({ status }),
-      });
-
-      if (res.ok) {
-        toast.success(`NGO status updated to ${status}`);
-        setPendingNgos(pendingNgos.filter((n: any) => n.id !== id));
-      } else {
-        toast.error("Failed to update status");
-      }
-    } catch (err) {
-      toast.error("An unexpected error occurred");
+      await api.post(`/api/admin/ngos/${id}/status`, { status });
+      toast.success(`NGO status updated to ${status}`);
+      setPendingNgos(pendingNgos.filter((n: any) => n.id !== id));
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update status");
     }
   };
 

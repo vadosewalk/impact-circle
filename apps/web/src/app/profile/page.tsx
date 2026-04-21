@@ -28,7 +28,7 @@ export default function ProfilePage() {
             <CardDescription>{session?.user?.email}</CardDescription>
           </div>
           <Badge variant="outline" className="capitalize">
-            {session?.user?.role || "Universal User"}
+            {(session?.user as any)?.role || "Universal User"}
           </Badge>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -38,7 +38,7 @@ export default function ProfilePage() {
               <div className="text-xs text-muted-foreground">Tenders Posted</div>
             </div>
             <div className="p-4 bg-muted/50 rounded-lg text-center">
-              <div className="text-2xl font-bold">{session?.user?.trustScore || 0}</div>
+              <div className="text-2xl font-bold">{(session?.user as any)?.trustScore || 0}</div>
               <div className="text-xs text-muted-foreground">Trust Score</div>
             </div>
           </div>
@@ -46,7 +46,7 @@ export default function ProfilePage() {
           <div className="space-y-2">
             <h3 className="font-semibold">Bio</h3>
             <p className="text-sm text-muted-foreground">
-              {session?.user?.bio || "No bio provided yet. Add one to build trust in the community."}
+              {(session?.user as any)?.bio || "No bio provided yet. Add one to build trust in the community."}
             </p>
           </div>
 
