@@ -1,10 +1,39 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
+import { auth } from "./lib/auth";
+import { sessionMiddleware } from "./middleware/auth";
 
-const app = new Hono();
+type Variables = {
+  user: typeof auth.$Infer.Session.user | undefined;
+  session: typeof auth.$Infer.Session.session | undefined;
+};
 
+const app = new Hono<{ Variables: Variables }>();
+
+// Global Session Middleware
+app.use("*", sessionMiddleware);
+
+// Better Auth Route Handler
+app.on(["POST", "GET"], "/api/auth/*", (c) => {
+  return auth.handler(c.req.raw);
+});
+
+// Root Route
 app.get("/", (c) => {
-  return c.text("Hello Hono!");
+  return c.json({
+    message: "Impact Circle API is running!",
+    status: "ok",
+  });
+});
+
+// Session Helper / Debug Route
+app.get("/api/me", async (c) => {
+  const user = c.get("user");
+  const session = c.get("session");
+  if (!session) {
+    return c.json({ message: "Unauthorized" }, 401);
+  }
+  return c.json({ user, session });
 });
 
 serve(
