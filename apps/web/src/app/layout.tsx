@@ -1,12 +1,21 @@
-import { Geist, Geist_Mono } from "next/font/google";
+import { Outfit, Merriweather, Fira_Code } from "next/font/google";
 import "@impact/ui/globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { cn } from "@impact/ui/lib/utils";
 import { Toaster } from "@impact/ui/components/sonner";
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
+const fontSans = Outfit({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
 
-const fontMono = Geist_Mono({
+const fontSerif = Merriweather({
+  subsets: ["latin"],
+  variable: "--font-serif",
+  weight: ["300", "400", "700", "900"],
+});
+
+const fontMono = Fira_Code({
   subsets: ["latin"],
   variable: "--font-mono",
 });
@@ -20,9 +29,9 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn("antialiased", fontMono.variable, "font-sans", geist.variable)}
+      className={cn("antialiased", fontMono.variable, fontSerif.variable, fontSans.variable)}
     >
-      <body>
+      <body className="font-sans">
         <ThemeProvider>
           {children}
           <Toaster />
