@@ -66,6 +66,41 @@ export const verification = pgTable("verification", {
   updatedAt: timestamp("updated_at"),
 });
 
+export const organization = pgTable("organization", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").unique(),
+  logo: text("logo"),
+  createdAt: timestamp("created_at").notNull(),
+  metadata: text("metadata"),
+});
+
+export const member = pgTable("member", {
+  id: text("id").primaryKey(),
+  organizationId: text("organization_id")
+    .notNull()
+    .references(() => organization.id),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id),
+  role: text("role").notNull(),
+  createdAt: timestamp("created_at").notNull(),
+});
+
+export const invitation = pgTable("invitation", {
+  id: text("id").primaryKey(),
+  organizationId: text("organization_id")
+    .notNull()
+    .references(() => organization.id),
+  email: text("email").notNull(),
+  role: text("role"),
+  status: text("status").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  inviterId: text("inviter_id")
+    .notNull()
+    .references(() => user.id),
+});
+
 // Impact Circle Business Logic Tables
 
 export const ngo = pgTable("ngo", {
@@ -73,6 +108,7 @@ export const ngo = pgTable("ngo", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id),
+  organizationId: text("organization_id").references(() => organization.id), // Link to Better Auth Org
   name: text("name").notNull(),
   description: text("description"),
   status: ngoStatusEnum("status").default("pending").notNull(),
@@ -127,6 +163,7 @@ export const tenders = pgTable("tenders", {
   urgency: urgencyEnum("urgency").default("normal").notNull(),
   latitude: numeric("latitude"),
   longitude: numeric("longitude"),
+  location: sql`geography(Point, 4326)`, // PostGIS Geography
 
   // Resource Pooling
   targetAmount: numeric("target_funds"),
@@ -165,6 +202,7 @@ export const drives = pgTable("drives", {
   status: driveStatusEnum("status").default("open").notNull(),
   latitude: numeric("latitude"),
   longitude: numeric("longitude"),
+  location: sql`geography(Point, 4326)`, // PostGIS Geography
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -205,19 +243,55 @@ export const messages = pgTable("messages", {
 
 // Relations
 export const userRelations = relations(user, ({ one, many }) => ({
-  ngo: many(ngo), // NGO ownership (one user can manage multiple technically, but we use firstFirst)
+  ngo: many(ngo),
+  memberships: many(member),
+  sentMessages: many(messages, { relationName: "sentMessages" }),
+  receivedMessages: many(messages, { relationName: "receivedMessages" }),
   tenders: many(tenders),
   beneficiaryUpdates: many(beneficiaryUpdates),
   claimedTenders: many(tenders, { relationName: "claimedBy" }),
   comments: many(comments),
-  sentMessages: many(messages, { relationName: "sentMessages" }),
-  receivedMessages: many(messages, { relationName: "receivedMessages" }),
+}));
+
+export const organizationRelations = relations(organization, ({ one, many }) => ({
+  members: many(member),
+  invitations: many(invitation),
+  ngo: one(ngo, {
+    fields: [organization.id],
+    references: [ngo.organizationId],
+  }),
+}));
+
+export const memberRelations = relations(member, ({ one }) => ({
+  user: one(user, {
+    fields: [member.userId],
+    references: [user.id],
+  }),
+  organization: one(organization, {
+    fields: [member.organizationId],
+    references: [organization.id],
+  }),
+}));
+
+export const invitationRelations = relations(invitation, ({ one }) => ({
+  organization: one(organization, {
+    fields: [invitation.organizationId],
+    references: [organization.id],
+  }),
+  inviter: one(user, {
+    fields: [invitation.inviterId],
+    references: [user.id],
+  }),
 }));
 
 export const ngoRelations = relations(ngo, ({ one, many }) => ({
   user: one(user, {
     fields: [ngo.userId],
     references: [user.id],
+  }),
+  organization: one(organization, {
+    fields: [ngo.organizationId],
+    references: [organization.id],
   }),
   drives: many(drives),
   requestedCategories: many(categories),
