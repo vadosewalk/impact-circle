@@ -1,4 +1,6 @@
-import { Button as ButtonPrimitive } from "@base-ui/react/button";
+import type { Button as ButtonPrimitive } from "@base-ui/react/button";
+import { mergeProps } from "@base-ui/react/merge-props";
+import { useRender } from "@base-ui/react/use-render";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@impact/ui/lib/utils";
@@ -42,9 +44,23 @@ function Button({
   className,
   variant = "default",
   size = "default",
+  render,
+  disabled,
   ...props
 }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
-  return <ButtonPrimitive data-slot="button" className={cn(buttonVariants({ variant, size, className }))} {...props} />;
+  return useRender({
+    render,
+    defaultTagName: "button",
+    state: { variant, size, disabled: disabled ?? false },
+    props: mergeProps(
+      {
+        "data-slot": "button",
+        className: cn(buttonVariants({ variant, size, className })),
+        disabled,
+      },
+      props,
+    ),
+  });
 }
 
 export { Button, buttonVariants };
