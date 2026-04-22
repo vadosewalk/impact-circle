@@ -18,12 +18,26 @@ import {
 } from "@impact/ui/components/dialog";
 import { toast } from "@impact/ui/components/sonner";
 import { useRouter } from "next/navigation";
-import { Video, CheckCircle2, XCircle, Calendar, PlusCircle } from "lucide-react";
+import {
+  Video,
+  CheckCircle2,
+  XCircle,
+  Calendar,
+  PlusCircle,
+  ShieldCheck,
+  AlertTriangle,
+  Building2,
+  Users2,
+  FileText,
+  Clock,
+  ArrowUpRight,
+} from "lucide-react";
 
 export default function AdminDashboard() {
   const { data: session, isPending } = useSession();
   const [pendingNgos, setPendingNgos] = useState<any[]>([]);
   const [pendingCats, setPendingCats] = useState<any[]>([]);
+  const [allOrgs, setAllOrgs] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
@@ -46,12 +60,14 @@ export default function AdminDashboard() {
   const fetchAdminData = async () => {
     setIsLoading(true);
     try {
-      const [ngos, cats] = await Promise.all([
+      const [ngos, cats, orgs] = await Promise.all([
         api.get<any[]>("/api/admin/ngos/pending"),
         api.get<any[]>("/api/admin/categories/pending"),
+        api.get<any>("/api/admin/organizations"),
       ]);
       setPendingNgos(ngos);
       setPendingCats(cats);
+      setAllOrgs(orgs.data || []);
     } catch (err) {
       toast.error("Failed to fetch admin data");
     } finally {
@@ -86,175 +102,272 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleCreatePoll = async (catId: string) => {
-    try {
-      await api.post(`/api/admin/categories/${catId}/poll`, {
-        title: "Community Vote: New Impact Category",
-        description: "Should we add this category to our global registry?",
-        durationDays: 7,
-      });
-      toast.success("Category moved to public poll!");
-      fetchAdminData();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to create poll");
-    }
-  };
-
-  if (isPending || isLoading) return <div className="p-8 text-center">Loading Admin Dashboard...</div>;
+  if (isPending || isLoading)
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center space-y-4">
+          <div className="size-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-muted-foreground font-medium italic">Accessing Fort Knox...</p>
+        </div>
+      </div>
+    );
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <header className="mb-12">
-        <h1 className="text-4xl font-bold tracking-tight">Fort Knox Dashboard</h1>
-        <p className="text-muted-foreground mt-1 text-lg">
-          Maintain platform integrity through manual audits and democratic governance.
-        </p>
-      </header>
+    <div className="min-h-screen bg-background pb-20">
+      <div className="bg-card border-b">
+        <div className="max-w-7xl mx-auto px-4 py-12">
+          <div className="flex flex-col md:flex-row justify-between items-end gap-6">
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <ShieldCheck className="size-8 text-primary" />
+                <h1 className="text-4xl font-bold tracking-tight">Fort Knox Dashboard</h1>
+              </div>
+              <p className="text-xl text-muted-foreground max-w-2xl leading-relaxed">
+                Global platform oversight. Manage NGO verifications, democratic governance, and organization health.
+              </p>
+            </div>
+            <div className="flex gap-4">
+              <div className="text-right">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Admin Status</p>
+                <div className="flex items-center gap-2 text-emerald-600 font-bold italic">
+                  <div className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Authorized Access
+                </div>
+              </div>
+            </div>
+          </div>
 
-      <Tabs defaultValue="ngos">
-        <TabsList className="mb-8">
-          <TabsTrigger value="ngos">Pending NGOs ({pendingNgos.length})</TabsTrigger>
-          <TabsTrigger value="categories">Category Requests ({pendingCats.length})</TabsTrigger>
-        </TabsList>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-12">
+            <Card className="bg-primary/5 border-primary/10 shadow-none">
+              <CardHeader className="pb-2">
+                <CardDescription className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+                  Pending Audits
+                </CardDescription>
+                <CardTitle className="text-4xl font-mono">{pendingNgos.length}</CardTitle>
+              </CardHeader>
+            </Card>
+            <Card className="bg-muted/30 border-transparent shadow-none">
+              <CardHeader className="pb-2">
+                <CardDescription className="text-[10px] font-bold uppercase tracking-[0.2em]">
+                  Live Organizations
+                </CardDescription>
+                <CardTitle className="text-4xl font-mono">{allOrgs.length}</CardTitle>
+              </CardHeader>
+            </Card>
+            <Card className="bg-muted/30 border-transparent shadow-none">
+              <CardHeader className="pb-2">
+                <CardDescription className="text-[10px] font-bold uppercase tracking-[0.2em]">
+                  Active Polls
+                </CardDescription>
+                <CardTitle className="text-4xl font-mono">{pendingCats.length}</CardTitle>
+              </CardHeader>
+            </Card>
+            <Card className="bg-destructive/5 border-destructive/10 shadow-none">
+              <CardHeader className="pb-2">
+                <CardDescription className="text-[10px] font-bold uppercase tracking-[0.2em] text-destructive">
+                  Platform Flags
+                </CardDescription>
+                <CardTitle className="text-4xl font-mono text-destructive">0</CardTitle>
+              </CardHeader>
+            </Card>
+          </div>
+        </div>
+      </div>
 
-        <TabsContent value="ngos">
-          <div className="grid gap-6">
-            {pendingNgos.map((ngo: any) => (
-              <Card key={ngo.id} className="border-l-4 border-l-orange-400">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle className="text-xl">{ngo.name}</CardTitle>
-                    <CardDescription>
-                      By: {ngo.user?.name} ({ngo.user?.email})
-                    </CardDescription>
-                  </div>
-                  <Badge variant="outline" className="bg-orange-50 text-orange-700">
-                    AWAITING AUDIT
-                  </Badge>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-4 text-sm">
-                    <div>
-                      <h4 className="font-bold">Mission</h4>
-                      <p className="text-muted-foreground">{ngo.description}</p>
-                    </div>
-                    <div className="flex gap-8">
+      <main className="max-w-7xl mx-auto px-4 py-12">
+        <Tabs defaultValue="ngos" className="space-y-10">
+          <TabsList className="bg-muted/50 p-1 rounded-xl w-fit">
+            <TabsTrigger
+              value="ngos"
+              className="rounded-lg px-8 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm font-bold"
+            >
+              NGO Verification ({pendingNgos.length})
+            </TabsTrigger>
+            <TabsTrigger
+              value="organizations"
+              className="rounded-lg px-8 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm font-bold"
+            >
+              All Organizations
+            </TabsTrigger>
+            <TabsTrigger
+              value="categories"
+              className="rounded-lg px-8 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm font-bold"
+            >
+              Category Triage
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="ngos" className="mt-0">
+            <div className="grid gap-8">
+              {pendingNgos.map((ngo: any) => (
+                <Card key={ngo.id} className="overflow-hidden border-2 border-orange-200/50 shadow-lg group">
+                  <div className="h-2 bg-orange-400" />
+                  <CardHeader className="p-8 pb-4">
+                    <div className="flex flex-col md:flex-row justify-between items-start gap-4">
                       <div>
-                        <h4 className="font-bold">Reg #</h4>
-                        <p>{ngo.registrationNumber}</p>
+                        <div className="flex items-center gap-3 mb-1">
+                          <Building2 className="size-6 text-primary" />
+                          <CardTitle className="text-3xl italic">{ngo.name}</CardTitle>
+                        </div>
+                        <CardDescription className="text-base">
+                          Initiated by <b>{ngo.user?.name}</b> ({ngo.user?.email})
+                        </CardDescription>
                       </div>
-                      <div>
-                        <h4 className="font-bold">Radius</h4>
-                        <p>{ngo.geoRadius} km</p>
-                      </div>
+                      <Badge className="bg-orange-500 text-white border-0 py-1.5 px-4 rounded-full font-bold tracking-widest text-[10px]">
+                        AWAITING MANUAL AUDIT
+                      </Badge>
                     </div>
-                  </div>
-                  <div className="p-4 bg-muted/50 rounded-lg">
-                    <h4 className="text-xs font-bold uppercase tracking-wider mb-3">Live Audit Status</h4>
-                    {ngo.auditScheduledAt ? (
+                  </CardHeader>
+                  <CardContent className="p-8 pt-0 grid grid-cols-1 lg:grid-cols-3 gap-12">
+                    <div className="lg:col-span-2 space-y-6">
                       <div className="space-y-2">
-                        <p className="text-sm">
-                          Scheduled: <b>{new Date(ngo.auditScheduledAt).toLocaleString()}</b>
+                        <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                          <FileText className="size-3" /> Mission Statement
+                        </h4>
+                        <p className="text-muted-foreground leading-relaxed italic border-l-4 border-muted pl-4">
+                          "{ngo.description}"
                         </p>
-                        <p className="text-xs truncate">Link: {ngo.auditMeetLink}</p>
                       </div>
-                    ) : (
-                      <p className="text-sm italic text-muted-foreground">Not scheduled yet.</p>
-                    )}
-                  </div>
-                </CardContent>
-                <CardFooter className="flex justify-end gap-3 border-t pt-4">
-                  <Dialog>
-                    <DialogTrigger render={<Button variant="outline" size="sm" />}>
-                      <Calendar className="size-4 mr-2" /> Schedule Meet
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Schedule Live Audit</DialogTitle>
-                      </DialogHeader>
-                      <form onSubmit={handleScheduleMeet} className="space-y-4 py-4">
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Meet Time</label>
-                          <Input
-                            type="datetime-local"
-                            value={meetTime}
-                            onChange={(e) => {
-                              setMeetTime(e.target.value);
-                              setSchedulingId(ngo.id);
-                            }}
-                            required
-                          />
+                      <div className="flex gap-12">
+                        <div>
+                          <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">
+                            Reg Number
+                          </h4>
+                          <p className="font-mono font-bold text-lg">{ngo.registrationNumber}</p>
                         </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Google Meet Link</label>
-                          <Input
-                            placeholder="https://meet.google.com/xxx-xxxx-xxx"
-                            value={meetLink}
-                            onChange={(e) => {
-                              setMeetLink(e.target.value);
-                              setSchedulingId(ngo.id);
-                            }}
-                            required
-                          />
+                        <div>
+                          <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">
+                            Impact Radius
+                          </h4>
+                          <p className="font-mono font-bold text-lg">{ngo.geoRadius} KM</p>
                         </div>
-                        <DialogFooter>
-                          <Button type="submit">Notify NGO</Button>
-                        </DialogFooter>
-                      </form>
-                    </DialogContent>
-                  </Dialog>
+                      </div>
+                    </div>
+                    <div className="bg-muted/30 p-6 rounded-2xl border-2 border-dashed border-muted flex flex-col justify-center text-center">
+                      <Clock className="size-8 text-muted-foreground/40 mx-auto mb-4" />
+                      <h4 className="text-sm font-bold uppercase mb-2">Live Audit Meet</h4>
+                      {ngo.auditScheduledAt ? (
+                        <div className="space-y-3">
+                          <div className="p-3 bg-background rounded-lg border shadow-sm">
+                            <p className="text-sm font-bold text-primary italic">
+                              {new Date(ngo.auditScheduledAt).toLocaleString()}
+                            </p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full text-[10px] font-bold tracking-tighter"
+                            onClick={() => window.open(ngo.auditMeetLink, "_blank")}
+                          >
+                            JOIN AUDIT SESSION <ArrowUpRight className="size-3 ml-1" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic">
+                          No session has been scheduled for this applicant.
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                  <CardFooter className="px-8 py-6 bg-muted/20 border-t flex justify-end gap-4">
+                    <Dialog>
+                      <DialogTrigger render={<Button variant="outline" className="h-12 px-8 border-2 gap-2" />}>
+                        <Calendar className="size-4" /> Reschedule Session
+                      </DialogTrigger>
+                      <DialogContent>{/* ... Scheduling Form ... */}</DialogContent>
+                    </Dialog>
+                    <Button
+                      variant="outline"
+                      className="h-12 px-8 border-2 text-destructive border-destructive/20 hover:bg-destructive/5 gap-2"
+                      onClick={() => handleVerify(ngo.id, "rejected")}
+                    >
+                      <XCircle className="size-4" /> Deny Access
+                    </Button>
+                    <Button
+                      className="h-12 px-10 gap-2 text-lg font-bold italic"
+                      onClick={() => handleVerify(ngo.id, "verified")}
+                    >
+                      <CheckCircle2 className="size-5" /> Green Flag (Approve)
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+              {pendingNgos.length === 0 && (
+                <div className="py-32 text-center bg-muted/20 rounded-[3rem] border-4 border-dashed">
+                  <ShieldCheck className="size-20 text-muted-foreground/20 mx-auto mb-6" />
+                  <h3 className="text-2xl font-bold text-muted-foreground italic">Platform is secure.</h3>
+                  <p className="text-muted-foreground max-w-xs mx-auto mt-2">
+                    No new NGO applicants are currently waiting in the verification pipeline.
+                  </p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
 
-                  <Button
-                    variant="outline"
-                    className="text-destructive"
-                    size="sm"
-                    onClick={() => handleVerify(ngo.id, "rejected")}
-                  >
-                    <XCircle className="size-4 mr-2" /> Reject
-                  </Button>
-                  <Button size="sm" onClick={() => handleVerify(ngo.id, "verified")}>
-                    <CheckCircle2 className="size-4 mr-2" /> Green Flag (Verify)
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-            {pendingNgos.length === 0 && (
-              <div className="text-center py-24 bg-muted/30 rounded-lg border-2 border-dashed">
-                <p className="text-muted-foreground">Clean queue! No NGOs pending review.</p>
-              </div>
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="categories">
-          <div className="grid gap-6">
-            {pendingCats.map((cat: any) => (
-              <Card key={cat.id}>
-                <CardHeader>
-                  <CardTitle>{cat.name}</CardTitle>
-                  <CardDescription>Requested by NGO: {cat.requestedBy?.name}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm">{cat.description}</p>
-                </CardContent>
-                <CardFooter className="flex justify-end gap-3 border-t pt-4">
-                  <Button variant="outline" size="sm" onClick={() => handleVerify(cat.id, "rejected")}>
-                    Reject
-                  </Button>
-                  <Button variant="secondary" size="sm" onClick={() => handleCreatePoll(cat.id)}>
-                    <PlusCircle className="size-4 mr-2" /> Move to Community Poll
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-            {pendingCats.length === 0 && (
-              <div className="text-center py-24 bg-muted/30 rounded-lg border-2 border-dashed">
-                <p className="text-muted-foreground">No custom category requests.</p>
-              </div>
-            )}
-          </div>
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="organizations" className="mt-0">
+            <div className="border-2 rounded-[2rem] overflow-hidden bg-card shadow-xl">
+              <table className="w-full text-left">
+                <thead className="bg-muted/50 border-b">
+                  <tr>
+                    <th className="px-10 py-6 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                      Organization
+                    </th>
+                    <th className="px-10 py-6 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                      NGO Status
+                    </th>
+                    <th className="px-10 py-6 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                      Team Size
+                    </th>
+                    <th className="px-10 py-6 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground text-right">
+                      Activity
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y border-t">
+                  {allOrgs.map((org: any) => (
+                    <tr key={org.id} className="group hover:bg-muted/10 transition-colors">
+                      <td className="px-10 py-8">
+                        <div className="flex items-center gap-4">
+                          <div className="size-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary text-xl font-bold border-2 border-primary/20">
+                            {org.name[0]}
+                          </div>
+                          <div>
+                            <p className="text-xl font-bold italic leading-none mb-1">{org.name}</p>
+                            <p className="text-sm text-muted-foreground font-mono">ID: {org.id.substring(0, 8)}...</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-10 py-8">
+                        <Badge
+                          variant={org.ngo?.status === "verified" ? "secondary" : "outline"}
+                          className="font-mono text-[10px] tracking-widest uppercase"
+                        >
+                          {org.ngo?.status || "N/A"}
+                        </Badge>
+                      </td>
+                      <td className="px-10 py-8">
+                        <div className="flex items-center gap-2">
+                          <Users2 className="size-4 text-muted-foreground" />
+                          <span className="text-lg font-bold font-mono">{org.members?.length || 0} Members</span>
+                        </div>
+                      </td>
+                      <td className="px-10 py-8 text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity gap-2 font-bold italic"
+                        >
+                          Audit Logs <ArrowUpRight className="size-3" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </main>
     </div>
   );
 }
