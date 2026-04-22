@@ -9,6 +9,7 @@ import { adminRoutes } from "./routes/admin";
 import { marketplaceRoutes } from "./routes/marketplace";
 import { messageRoutes } from "./routes/messages";
 import { accountabilityRoutes } from "./routes/accountability";
+import { memberRoutes } from "./routes/members";
 import { errorHandler, notFoundHandler } from "./middleware/error";
 
 type Variables = {
@@ -47,6 +48,7 @@ app.route("/api/admin", adminRoutes);
 app.route("/api/marketplace", marketplaceRoutes);
 app.route("/api/messages", messageRoutes);
 app.route("/api/accountability", accountabilityRoutes);
+app.route("/api/members", memberRoutes);
 
 // Root Route
 app.get("/", (c) => {

@@ -1,0 +1,113 @@
+import { Hono } from "hono";
+import { requireAuth, requireRole } from "../middleware/auth";
+import { auth } from "../lib/auth";
+import { zValidator } from "@hono/zod-validator";
+import { inviteMemberSchema, updateMemberRoleSchema } from "../lib/schemas";
+import { successResponse, errorResponse } from "../lib/response";
+
+const memberRoutes = new Hono<{
+  Variables: {
+    user: typeof auth.$Infer.Session.user;
+    session: typeof auth.$Infer.Session.session;
+  };
+}>();
+
+// List members of the active organization
+memberRoutes.get("/", requireAuth, requireRole("ngo"), async (c) => {
+  const user = c.get("user");
+
+  // Find organizations where the user is a member
+  const organizations = await auth.api.listOrganizations({
+    headers: c.req.raw.headers,
+  });
+
+  if (!organizations || organizations.length === 0) {
+    return errorResponse(c, "No organization found for this user", undefined, 404);
+  }
+
+  // For simplicity, we assume the first one is the active one if not specified
+  // In a real app, we'd use setActive or a query param
+  const orgId = organizations[0].id;
+
+  const members = await auth.api.listMembers({
+    query: {
+      organizationId: orgId,
+    },
+  });
+
+  return successResponse(c, "Members fetched successfully", members);
+});
+
+// Invite a new member
+memberRoutes.post("/invite", requireAuth, requireRole("ngo"), zValidator("json", inviteMemberSchema), async (c) => {
+  const { email, role } = c.req.valid("json");
+  const organizations = await auth.api.listOrganizations({
+    headers: c.req.raw.headers,
+  });
+
+  if (!organizations || organizations.length === 0) {
+    return errorResponse(c, "No organization found", undefined, 404);
+  }
+
+  const orgId = organizations[0].id;
+
+  try {
+    const invitation = await auth.api.inviteMember({
+      body: {
+        email,
+        role,
+        organizationId: orgId,
+      },
+      headers: c.req.raw.headers,
+    });
+
+    return successResponse(c, "Invitation sent successfully", invitation);
+  } catch (err: any) {
+    return errorResponse(c, err.message || "Failed to send invitation", undefined, 400);
+  }
+});
+
+// Update member role
+memberRoutes.post(
+  "/update-role",
+  requireAuth,
+  requireRole("ngo"),
+  zValidator("json", updateMemberRoleSchema),
+  async (c) => {
+    const { memberId, role } = c.req.valid("json");
+
+    try {
+      const updatedMember = await auth.api.updateMemberRole({
+        body: {
+          memberId,
+          role,
+        },
+        headers: c.req.raw.headers,
+      });
+
+      return successResponse(c, "Member role updated successfully", updatedMember);
+    } catch (err: any) {
+      return errorResponse(c, err.message || "Failed to update role", undefined, 400);
+    }
+  },
+);
+
+// Remove a member
+memberRoutes.delete("/:id", requireAuth, requireRole("ngo"), async (c) => {
+  const memberId = c.req.param("id");
+
+  try {
+    await auth.api.removeMember({
+      body: {
+        memberId,
+      },
+      headers: c.req.raw.headers,
+    });
+
+    return successResponse(c, "Member removed successfully");
+  } catch (err: any) {
+    return errorResponse(c, err.message || "Failed to remove member", undefined, 400);
+  }
+});
+
+export { memberRoutes };

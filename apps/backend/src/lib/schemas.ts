@@ -48,10 +48,14 @@ export const ngoOnboardSchema = z.object({
   geoRadius: z.number().int().min(1).max(10000).optional(),
   address: z.string().min(5).max(200).optional(),
   registrationNumber: z.string().min(5).max(50).optional(),
-  documents: z.array(z.object({
-    type: z.string(),
-    url: z.string().url(),
-  })).optional(),
+  documents: z
+    .array(
+      z.object({
+        type: z.string(),
+        url: z.string().url(),
+      }),
+    )
+    .optional(),
 });
 
 export const adminScheduleAuditSchema = z.object({
@@ -76,4 +80,14 @@ export const adminFinalizeCategorySchema = z.object({
 export const sendMessageSchema = z.object({
   receiverId: z.string().uuid().or(z.string()), // Better Auth IDs might not be UUIDs
   content: z.string().min(1).max(500),
+});
+
+export const inviteMemberSchema = z.object({
+  email: z.string().email(),
+  role: z.enum(["admin", "member"]).default("member"),
+});
+
+export const updateMemberRoleSchema = z.object({
+  memberId: z.string(),
+  role: z.enum(["admin", "member"]),
 });
