@@ -1,6 +1,13 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let resend: Resend | null = null;
+
+const getResend = () => {
+  if (!resend && process.env.RESEND_API_KEY) {
+    resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resend;
+};
 
 export type SendEmailOptions = {
   to: string | string[];
@@ -9,14 +16,16 @@ export type SendEmailOptions = {
 };
 
 export const sendEmail = async (options: SendEmailOptions) => {
-  if (!process.env.RESEND_API_KEY) {
+  const resendClient = getResend();
+
+  if (!resendClient) {
     console.warn("RESEND_API_KEY is not set. Email will not be sent.");
     console.log(`[MOCK EMAIL to ${options.to}]: ${options.subject}`);
     return { id: "mock-id" };
   }
 
   try {
-    const data = await resend.emails.send({
+    const data = await resendClient.emails.send({
       from: process.env.EMAIL_FROM || "Impact Circle <onboarding@resend.dev>",
       to: options.to,
       subject: options.subject,
