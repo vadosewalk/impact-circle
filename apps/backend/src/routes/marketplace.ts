@@ -1,19 +1,20 @@
 import { Hono } from "hono";
+import { z } from "zod";
 import {
   db,
   tenders,
   drives,
   categories,
   ngo,
+  user,
   comments,
   driveUpdates,
-  user,
   beneficiaryUpdates,
   polls,
 } from "@impact/db";
-import { eq, and, sql, or, lt, gte } from "drizzle-orm";
+import { eq, and, sql, desc } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middleware/auth";
-import { auth } from "../lib/auth";
+import type { auth } from "../lib/auth";
 import { zValidator } from "@hono/zod-validator";
 import {
   tenderSchema,
@@ -23,6 +24,7 @@ import {
   categoryRequestSchema,
   pollVoteSchema,
   commentSchema,
+  locationQuerySchema,
 } from "../lib/schemas";
 import { successResponse, errorResponse } from "../lib/response";
 import { TRUST_POINTS, updateTrustScore } from "../lib/impact";
@@ -36,22 +38,17 @@ const marketplaceRoutes = new Hono<{
 
 // --- Tenders (Beneficiary Needs) ---
 
-marketplaceRoutes.get("/tenders", async (c) => {
-  const lat = c.req.query("lat");
-  const lng = c.req.query("lng");
-  const radius = c.req.query("radius") || "50000"; // Default 50km in meters for PostGIS geography
+marketplaceRoutes.get("/tenders", zValidator("query", locationQuerySchema), async (c) => {
+  const { lat, lng, radius: rawRadius } = c.req.valid("query");
+  const radius = rawRadius || 50000; // Default 50km in meters for PostGIS geography
 
-  let whereClause = eq(tenders.status, "open");
+  const whereClause = eq(tenders.status, "open");
 
-  if (lat && lng) {
-    const uLat = parseFloat(lat);
-    const uLng = parseFloat(lng);
-    const uRad = parseFloat(radius);
-
+  if (lat !== undefined && lng !== undefined) {
     // PostGIS optimized spatial query:
     // ST_DWithin(location, ST_SetSRID(ST_MakePoint(lng, lat), 4326), radius)
     // We also include SOS (urgent) bypass in the SQL where clause
-    const spatialFilter = sql`(${tenders.urgency} = 'urgent' OR ST_DWithin(${tenders.location}, ST_SetSRID(ST_MakePoint(${uLng}, ${uLat}), 4326)::geography, ${uRad}))`;
+    const spatialFilter = sql`(${tenders.urgency} = 'urgent' OR ST_DWithin(${tenders.location}, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography, ${radius}))`;
 
     const filteredTenders = await db.query.tenders.findMany({
       where: and(whereClause, spatialFilter),
@@ -88,12 +85,12 @@ marketplaceRoutes.post("/tenders", requireAuth, zValidator("json", tenderSchema)
     title: body.title,
     description: body.description,
     categoryId: body.categoryId,
-    urgency: body.urgency as any,
+    urgency: body.urgency,
     latitude: body.latitude,
     longitude: body.longitude,
     location:
       body.latitude && body.longitude
-        ? (sql`ST_SetSRID(ST_MakePoint(${parseFloat(body.longitude)}, ${parseFloat(body.latitude)}), 4326)::geography` as any)
+        ? sql<string>`ST_SetSRID(ST_MakePoint(${parseFloat(body.longitude)}, ${parseFloat(body.latitude)}), 4326)::geography`
         : null,
     targetAmount: body.targetAmount,
     targetVolunteers: body.targetVolunteers,
@@ -119,16 +116,21 @@ marketplaceRoutes.post("/tenders/:id/pledge", requireAuth, zValidator("json", pl
   const newAmount = (parseFloat(tenderRecord.currentAmount || "0") + (amount || 0)).toString();
   const newVolunteers = (tenderRecord.currentVolunteers || 0) + (volunteers || 0);
 
-  await db
-    .update(tenders)
-    .set({
-      currentAmount: newAmount,
-      currentVolunteers: newVolunteers,
-      updatedAt: new Date(),
-    })
-    .where(eq(tenders.id, tenderId));
+  await db.transaction(async (tx) => {
+    await tx
+      .update(tenders)
+      .set({
+        currentAmount: newAmount,
+        currentVolunteers: newVolunteers,
+        updatedAt: new Date(),
+      })
+      .where(eq(tenders.id, tenderId));
 
-  await updateTrustScore(currentUser.id, TRUST_POINTS.PARTIAL_PLEDGE);
+    await tx
+      .update(user)
+      .set({ trustScore: sql`${user.trustScore} + ${TRUST_POINTS.PARTIAL_PLEDGE}` })
+      .where(eq(user.id, currentUser.id));
+  });
 
   return successResponse(c, `Pledge accepted! +${TRUST_POINTS.PARTIAL_PLEDGE} Trust Score.`);
 });
@@ -169,15 +171,20 @@ marketplaceRoutes.post("/tenders/:id/fulfill", requireAuth, async (c) => {
     return errorResponse(c, "Unauthorized", undefined, 403);
   }
 
-  await db
-    .update(tenders)
-    .set({
-      status: "fulfilled",
-      updatedAt: new Date(),
-    })
-    .where(eq(tenders.id, tenderId));
+  await db.transaction(async (tx) => {
+    await tx
+      .update(tenders)
+      .set({
+        status: "fulfilled",
+        updatedAt: new Date(),
+      })
+      .where(eq(tenders.id, tenderId));
 
-  await updateTrustScore(currentUser.id, TRUST_POINTS.TENDER_FULFILLED);
+    await tx
+      .update(user)
+      .set({ trustScore: sql`${user.trustScore} + ${TRUST_POINTS.TENDER_FULFILLED}` })
+      .where(eq(user.id, currentUser.id));
+  });
 
   return successResponse(
     c,
@@ -198,39 +205,62 @@ marketplaceRoutes.post("/tenders/:id/gratitude", requireAuth, zValidator("json",
   if (tenderRecord.status !== "fulfilled")
     return errorResponse(c, "Tender must be fulfilled before posting gratitude", undefined, 400);
 
-  await db.insert(beneficiaryUpdates).values({
-    id: crypto.randomUUID(),
-    tenderId,
-    userId: currentUser.id,
-    content,
-  });
+  await db.transaction(async (tx) => {
+    await tx.insert(beneficiaryUpdates).values({
+      id: crypto.randomUUID(),
+      tenderId,
+      userId: currentUser.id,
+      content,
+    });
 
-  await updateTrustScore(currentUser.id, TRUST_POINTS.GRATITUDE_UPDATE);
+    await tx
+      .update(user)
+      .set({ trustScore: sql`${user.trustScore} + ${TRUST_POINTS.GRATITUDE_UPDATE}` })
+      .where(eq(user.id, currentUser.id));
+  });
 
   return successResponse(c, `Gratitude post shared! +${TRUST_POINTS.GRATITUDE_UPDATE} Trust Score.`);
 });
 
 // --- Drives (NGO Initiatives) ---
 
-marketplaceRoutes.get("/drives", async (c) => {
-  const allDrives = await db.query.drives.findMany({
-    where: eq(drives.status, "open"),
-    with: {
-      ngo: {
-        with: {
-          user: true,
-        },
+marketplaceRoutes.get("/drives", zValidator("query", locationQuerySchema), async (c) => {
+  const { lat, lng, radius: rawRadius } = c.req.valid("query");
+  const radius = rawRadius || 50000;
+
+  const conditions = [eq(drives.status, "open")];
+
+  if (lat !== undefined && lng !== undefined) {
+    conditions.push(
+      sql`ST_DWithin(${drives.location}, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography, ${radius})`,
+    );
+  }
+
+  const rows = await db
+    .select({
+      drive: drives,
+      ngo: ngo,
+      user: {
+        id: user.id,
+        name: user.name,
+        trustScore: user.trustScore,
       },
+    })
+    .from(drives)
+    .innerJoin(ngo, eq(drives.ngoId, ngo.id))
+    .innerJoin(user, eq(ngo.userId, user.id))
+    .where(and(...conditions))
+    .orderBy(desc(user.trustScore));
+
+  const sortedDrives = rows.map((row) => ({
+    ...row.drive,
+    ngo: {
+      ...row.ngo,
+      user: row.user,
     },
-    // Boost drives from NGOs with higher trust scores
-    // Drizzle doesn't support easy sorting by joined field in findMany with 'with'
-    // We might need to use the standard select query for complex sorting.
-  });
+  }));
 
-  // Manual sort as a quick optimization
-  const sorted = allDrives.sort((a, b) => (b.ngo.user.trustScore || 0) - (a.ngo.user.trustScore || 0));
-
-  return successResponse(c, "Drives fetched and ranked by NGO Trust Score", sorted);
+  return successResponse(c, "Drives fetched and ranked by NGO Trust Score", sortedDrives);
 });
 
 marketplaceRoutes.post("/drives", requireAuth, requireRole("ngo"), zValidator("json", driveSchema), async (c) => {
@@ -254,7 +284,7 @@ marketplaceRoutes.post("/drives", requireAuth, requireRole("ngo"), zValidator("j
     longitude: body.longitude,
     location:
       body.latitude && body.longitude
-        ? (sql`ST_SetSRID(ST_MakePoint(${parseFloat(body.longitude)}, ${parseFloat(body.latitude)}), 4326)::geography` as any)
+        ? sql<string>`ST_SetSRID(ST_MakePoint(${parseFloat(body.longitude)}, ${parseFloat(body.latitude)}), 4326)::geography`
         : null,
   });
   return successResponse(c, "Drive created successfully", { id: newDriveId }, 201);
@@ -288,15 +318,20 @@ marketplaceRoutes.post(
 
     if (!driveRecord) return errorResponse(c, "Drive not found or access denied", undefined, 403);
 
-    await db.insert(driveUpdates).values({
-      id: crypto.randomUUID(),
-      driveId,
-      userId: currentUser.id,
-      content,
-      images,
-    });
+    await db.transaction(async (tx) => {
+      await tx.insert(driveUpdates).values({
+        id: crypto.randomUUID(),
+        driveId,
+        userId: currentUser.id,
+        content,
+        images,
+      });
 
-    await updateTrustScore(currentUser.id, TRUST_POINTS.IMPACT_UPDATE);
+      await tx
+        .update(user)
+        .set({ trustScore: sql`${user.trustScore} + ${TRUST_POINTS.IMPACT_UPDATE}` })
+        .where(eq(user.id, currentUser.id));
+    });
 
     return successResponse(c, `Drive update posted successfully. +${TRUST_POINTS.IMPACT_UPDATE} Trust Score!`);
   },

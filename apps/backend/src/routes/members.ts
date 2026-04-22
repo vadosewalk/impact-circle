@@ -14,8 +14,6 @@ const memberRoutes = new Hono<{
 
 // List members of the active organization
 memberRoutes.get("/", requireAuth, requireRole("ngo"), async (c) => {
-  const user = c.get("user");
-
   // Find organizations where the user is a member
   const organizations = await auth.api.listOrganizations({
     headers: c.req.raw.headers,
@@ -33,6 +31,7 @@ memberRoutes.get("/", requireAuth, requireRole("ngo"), async (c) => {
     query: {
       organizationId: orgId,
     },
+    headers: c.req.raw.headers,
   });
 
   return successResponse(c, "Members fetched successfully", members);
@@ -52,7 +51,7 @@ memberRoutes.post("/invite", requireAuth, requireRole("ngo"), zValidator("json",
   const orgId = organizations[0].id;
 
   try {
-    const invitation = await auth.api.inviteMember({
+    const invitation = await auth.api.createInvitation({
       body: {
         email,
         role,
@@ -62,8 +61,8 @@ memberRoutes.post("/invite", requireAuth, requireRole("ngo"), zValidator("json",
     });
 
     return successResponse(c, "Invitation sent successfully", invitation);
-  } catch (err: any) {
-    return errorResponse(c, err.message || "Failed to send invitation", undefined, 400);
+  } catch (err) {
+    return errorResponse(c, err instanceof Error ? err.message : "Failed to send invitation", undefined, 400);
   }
 });
 
@@ -86,8 +85,8 @@ memberRoutes.post(
       });
 
       return successResponse(c, "Member role updated successfully", updatedMember);
-    } catch (err: any) {
-      return errorResponse(c, err.message || "Failed to update role", undefined, 400);
+    } catch (err) {
+      return errorResponse(c, err instanceof Error ? err.message : "Failed to update role", undefined, 400);
     }
   },
 );
@@ -99,14 +98,14 @@ memberRoutes.delete("/:id", requireAuth, requireRole("ngo"), async (c) => {
   try {
     await auth.api.removeMember({
       body: {
-        memberId,
+        memberIdOrEmail: memberId,
       },
       headers: c.req.raw.headers,
     });
 
     return successResponse(c, "Member removed successfully");
-  } catch (err: any) {
-    return errorResponse(c, err.message || "Failed to remove member", undefined, 400);
+  } catch (err) {
+    return errorResponse(c, err instanceof Error ? err.message : "Failed to remove member", undefined, 400);
   }
 });
 

@@ -1,8 +1,8 @@
 import { Hono } from "hono";
-import { db, ngo, user, categories, polls, organization } from "@impact/db";
-import { eq, sql } from "drizzle-orm";
+import { db, ngo, user, categories, polls, member } from "@impact/db";
+import { eq, and, sql } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middleware/auth";
-import { auth } from "../lib/auth";
+import type { auth } from "../lib/auth";
 import { zValidator } from "@hono/zod-validator";
 import {
   adminScheduleAuditSchema,
@@ -70,17 +70,30 @@ adminRoutes.post(
 
     if (!ngoRecord) return errorResponse(c, "NGO not found", undefined, 404);
 
-    await db
-      .update(ngo)
-      .set({ status: status as any, updatedAt: new Date() })
-      .where(eq(ngo.id, id));
+    await db.transaction(async (tx) => {
+      await tx.update(ngo).set({ status, updatedAt: new Date() }).where(eq(ngo.id, id));
 
-    if (status === "verified") {
-      await updateTrustScore(ngoRecord.userId, TRUST_POINTS.NGO_VERIFIED);
-      await db.update(user).set({ role: "ngo" }).where(eq(user.id, ngoRecord.userId));
-    }
+      if (status === "verified") {
+        // Update user global role to 'ngo'
+        await tx.update(user).set({ role: "ngo" }).where(eq(user.id, ngoRecord.userId));
 
-    return successResponse(c, `NGO status updated to ${status}. +${TRUST_POINTS.NGO_VERIFIED} Trust score updated.`);
+        // Increment trust score
+        await tx
+          .update(user)
+          .set({ trustScore: sql`${user.trustScore} + ${TRUST_POINTS.NGO_VERIFIED}` })
+          .where(eq(user.id, ngoRecord.userId));
+
+        // Sync organization role if exists
+        if (ngoRecord.organizationId) {
+          await tx
+            .update(member)
+            .set({ role: "admin" }) // Set as admin of their own NGO organization
+            .where(and(eq(member.organizationId, ngoRecord.organizationId), eq(member.userId, ngoRecord.userId)));
+        }
+      }
+    });
+
+    return successResponse(c, `NGO status updated to ${status}. Roles and Trust Score synchronized.`);
   },
 );
 

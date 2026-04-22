@@ -91,3 +91,9 @@ export const updateMemberRoleSchema = z.object({
   memberId: z.string(),
   role: z.enum(["admin", "member"]),
 });
+
+export const locationQuerySchema = z.object({
+  lat: z.coerce.number().optional(),
+  lng: z.coerce.number().optional(),
+  radius: z.coerce.number().optional(),
+});

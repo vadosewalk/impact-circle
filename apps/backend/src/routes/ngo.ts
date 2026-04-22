@@ -30,7 +30,7 @@ ngoRoutes.post("/onboard", requireAuth, zValidator("json", ngoOnboardSchema), as
   const org = await auth.api.createOrganization({
     body: {
       name: body.name,
-      slug: body.name.toLowerCase().replace(/\s+/g, "-") + "-" + Math.random().toString(36).substring(7),
+      slug: `${body.name.toLowerCase().replace(/\s+/g, "-")}-${Math.random().toString(36).substring(7)}`,
       userId: currentUser.id,
     },
   });

@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { db, messages } from "@impact/db";
 import { eq, or } from "drizzle-orm";
 import { requireAuth } from "../middleware/auth";
-import { auth } from "../lib/auth";
+import type { auth } from "../lib/auth";
 import { zValidator } from "@hono/zod-validator";
 import { sendMessageSchema } from "../lib/schemas";
 import { successResponse } from "../lib/response";
