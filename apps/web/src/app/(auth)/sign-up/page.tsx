@@ -5,9 +5,8 @@ import { useRouter } from "next/navigation";
 import { signUp } from "@/lib/auth-client";
 import { Button } from "@impact/ui/components/button";
 import { Input } from "@impact/ui/components/input";
-import { Textarea } from "@impact/ui/components/textarea";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@impact/ui/components/card";
-import { FieldGroup, Field, FieldLabel, FieldError, FieldDescription } from "@impact/ui/components/field";
+import { FieldGroup, Field, FieldLabel, FieldDescription } from "@impact/ui/components/field";
 import { toast } from "@impact/ui/components/sonner";
 import Link from "next/link";
 
@@ -41,7 +40,7 @@ export default function SignUpPage() {
           router.push("/");
         }
       }
-    } catch (err) {
+    } catch {
       toast.error("An unexpected error occurred");
     } finally {
       setIsLoading(false);

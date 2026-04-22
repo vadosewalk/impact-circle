@@ -26,6 +26,8 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@better-auth/core": "^1.6.6",
+    "@better-fetch/fetch": "^1.1.21",
     "@impact/typescript-config": "workspace:*",
     "@tailwindcss/postcss": "^4.2.4",
     "@types/node": "^25.6.0",

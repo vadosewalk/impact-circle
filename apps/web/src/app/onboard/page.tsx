@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
 import { api } from "@/lib/api";
@@ -8,13 +8,25 @@ import { Button } from "@impact/ui/components/button";
 import { Input } from "@impact/ui/components/input";
 import { Textarea } from "@impact/ui/components/textarea";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@impact/ui/components/card";
-import { FieldGroup, Field, FieldLabel, FieldDescription } from "@impact/ui/components/field";
+import { FieldGroup, Field, FieldLabel } from "@impact/ui/components/field";
 import { toast } from "@impact/ui/components/sonner";
-import { Calendar, Video, MapPin, ExternalLink } from "lucide-react";
+import { Calendar, Video, ExternalLink } from "lucide-react";
+
+interface NgoRecord {
+  id: string;
+  name: string;
+  description: string;
+  registrationNumber: string;
+  geoRadius: number;
+  address: string;
+  status: "not_started" | "pending" | "verified" | "rejected";
+  auditScheduledAt?: string;
+  auditMeetLink?: string;
+}
 
 export default function OnboardPage() {
   const { data: session, isPending } = useSession();
-  const [ngoRecord, setNgoRecord] = useState<any>(null);
+  const [ngoRecord, setNgoRecord] = useState<NgoRecord | null>(null);
   const [status, setStatus] = useState<"not_started" | "pending" | "verified" | "rejected">("not_started");
 
   // Form state
@@ -26,6 +38,21 @@ export default function OnboardPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
+  const fetchNgoStatus = useCallback(async () => {
+    try {
+      const data = (await api.get("/api/ngo/me")) as NgoRecord;
+      setNgoRecord(data);
+      setStatus(data.status);
+      setNgoName(data.name);
+      setDescription(data.description);
+      setRegNumber(data.registrationNumber);
+      setGeoRadius(data.geoRadius.toString());
+      setAddress(data.address);
+    } catch {
+      console.error("No existing NGO record found");
+    }
+  }, []);
+
   useEffect(() => {
     if (!isPending && !session) {
       router.push("/sign-in");
@@ -35,22 +62,7 @@ export default function OnboardPage() {
     if (session?.user) {
       fetchNgoStatus();
     }
-  }, [session, isPending]);
-
-  const fetchNgoStatus = async () => {
-    try {
-      const data: any = await api.get("/api/ngo/me");
-      setNgoRecord(data);
-      setStatus(data.status);
-      setNgoName(data.name);
-      setDescription(data.description);
-      setRegNumber(data.registrationNumber);
-      setGeoRadius(data.geoRadius.toString());
-      setAddress(data.address);
-    } catch (err) {
-      console.error("No existing NGO record found");
-    }
-  };
+  }, [session, isPending, router, fetchNgoStatus]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +73,7 @@ export default function OnboardPage() {
         name: ngoName,
         description,
         registrationNumber: regNumber,
-        geoRadius: parseInt(geoRadius),
+        geoRadius: parseInt(geoRadius, 10),
         address,
         documents: [],
       });
@@ -69,8 +81,9 @@ export default function OnboardPage() {
       toast.success("Onboarding request submitted successfully");
       setStatus("pending");
       fetchNgoStatus();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to submit request");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to submit request";
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -105,11 +118,14 @@ export default function OnboardPage() {
                     </div>
                   </div>
                   {ngoRecord.auditMeetLink ? (
-                    <Button className="w-full" asChild>
-                      <a href={ngoRecord.auditMeetLink} target="_blank" rel="noreferrer">
-                        Join Meet Call <ExternalLink className="size-4 ml-2" />
-                      </a>
-                    </Button>
+                    <Button
+                      className="w-full"
+                      render={
+                        <a href={ngoRecord.auditMeetLink} target="_blank" rel="noreferrer">
+                          Join Meet Call <ExternalLink className="size-4 ml-2" />
+                        </a>
+                      }
+                    />
                   ) : (
                     <p className="text-xs text-center text-muted-foreground italic">
                       Link will appear here 10 mins before call.

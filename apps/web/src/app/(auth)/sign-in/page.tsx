@@ -6,7 +6,7 @@ import { signIn } from "@/lib/auth-client";
 import { Button } from "@impact/ui/components/button";
 import { Input } from "@impact/ui/components/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@impact/ui/components/card";
-import { FieldGroup, Field, FieldLabel, FieldError } from "@impact/ui/components/field";
+import { FieldGroup, Field, FieldLabel } from "@impact/ui/components/field";
 import { toast } from "@impact/ui/components/sonner";
 import Link from "next/link";
 
@@ -33,7 +33,7 @@ export default function SignInPage() {
         toast.success("Signed in successfully");
         router.push("/");
       }
-    } catch (err) {
+    } catch {
       toast.error("An unexpected error occurred");
     } finally {
       setIsLoading(false);

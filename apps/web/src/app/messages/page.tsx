@@ -1,33 +1,32 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "@/lib/auth-client";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@impact/ui/components/card";
+import { Card, CardHeader, CardTitle, CardFooter } from "@impact/ui/components/card";
 import { Button } from "@impact/ui/components/button";
 import { Input } from "@impact/ui/components/input";
-import { Badge } from "@impact/ui/components/badge";
 import { ScrollArea } from "@impact/ui/components/scroll-area";
 import { toast } from "@impact/ui/components/sonner";
 import { useRouter } from "next/navigation";
 import { Send, User, Clock } from "lucide-react";
 
+interface Message {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  content: string;
+  createdAt: string;
+}
+
 export default function MessagesPage() {
   const { data: session, isPending } = useSession();
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [newMessage, setNewMessage] = useState("");
   const [selectedContact, setSelectedContact] = useState<string | null>(null);
   const router = useRouter();
 
-  useEffect(() => {
-    if (!isPending && !session) {
-      router.push("/sign-in");
-      return;
-    }
-    if (session) fetchMessages();
-  }, [session, isPending]);
-
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/messages`, {
         headers: {
@@ -37,12 +36,20 @@ export default function MessagesPage() {
       if (res.ok) {
         setMessages(await res.json());
       }
-    } catch (err) {
+    } catch {
       toast.error("Failed to load messages");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [session?.session.token]);
+
+  useEffect(() => {
+    if (!isPending && !session) {
+      router.push("/sign-in");
+      return;
+    }
+    if (session) fetchMessages();
+  }, [session, isPending, router, fetchMessages]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,13 +75,13 @@ export default function MessagesPage() {
         const data = await res.json();
         toast.error(data.message || "Failed to send message");
       }
-    } catch (err) {
+    } catch {
       toast.error("An unexpected error occurred");
     }
   };
 
   // Group messages by conversation (unique contact)
-  const conversations = messages.reduce((acc: any, msg: any) => {
+  const conversations = messages.reduce((acc: Record<string, Message[]>, msg: Message) => {
     const contactId = msg.senderId === session?.user.id ? msg.receiverId : msg.senderId;
     if (!acc[contactId]) acc[contactId] = [];
     acc[contactId].push(msg);
@@ -106,6 +113,7 @@ export default function MessagesPage() {
                 {contactIds.map((id) => (
                   <button
                     key={id}
+                    type="button"
                     className={`w-full p-4 text-left hover:bg-muted/50 transition-colors ${selectedContact === id ? "bg-muted" : ""}`}
                     onClick={() => setSelectedContact(id)}
                   >
@@ -115,7 +123,7 @@ export default function MessagesPage() {
                       </div>
                       <div className="flex-1 overflow-hidden">
                         <div className="font-medium text-sm truncate">User ID: {id}</div>
-                        <div className="text-xs text-muted-foreground truncate">{conversations[id][0].content}</div>
+                        <div className="text-xs text-muted-foreground truncate">{conversations[id]?.[0]?.content}</div>
                       </div>
                     </div>
                   </button>
@@ -127,7 +135,7 @@ export default function MessagesPage() {
 
         {/* Main Content: Chat Window */}
         <Card className="flex-1 flex flex-col">
-          {selectedContact ? (
+          {selectedContact && conversations[selectedContact] ? (
             <>
               <CardHeader className="border-b py-3">
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -139,7 +147,7 @@ export default function MessagesPage() {
                   {conversations[selectedContact]
                     .slice()
                     .reverse()
-                    .map((msg: any) => (
+                    .map((msg: Message) => (
                       <div
                         key={msg.id}
                         className={`flex ${msg.senderId === session?.user.id ? "justify-end" : "justify-start"}`}

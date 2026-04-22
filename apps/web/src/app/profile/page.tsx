@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "@/lib/auth-client";
 import { api } from "@/lib/api";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@impact/ui/components/card";
@@ -8,6 +8,7 @@ import { Button } from "@impact/ui/components/button";
 import { Badge } from "@impact/ui/components/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@impact/ui/components/tabs";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   CheckCircle2,
   Clock,
@@ -22,40 +23,54 @@ import {
 } from "lucide-react";
 import { toast } from "@impact/ui/components/sonner";
 
+interface Tender {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  updatedAt: string;
+  claimedById: string;
+  latitude?: string;
+  longitude?: string;
+}
+
 export default function ProfilePage() {
   const { data: session, isPending } = useSession();
-  const [claimedTenders, setClaimedTenders] = useState<any[]>([]);
+  const [claimedTenders, setClaimedTenders] = useState<Tender[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+
+  const fetchClaimedTenders = useCallback(async () => {
+    try {
+      const allTenders = await api.get<{ data: Tender[] }>("/api/marketplace/tenders");
+      // Since API returns { success: boolean, message: string, data: any[] }
+      const data = allTenders.data || [];
+      setClaimedTenders(data.filter((t) => t.claimedById === session?.user.id));
+    } catch (_err) {
+      console.error("Failed to fetch claimed tenders");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [session?.user.id]);
 
   useEffect(() => {
     if (!isPending && !session) {
       router.push("/sign-in");
       return;
     }
-    if (session) fetchClaimedTenders();
-  }, [session, isPending]);
-
-  const fetchClaimedTenders = async () => {
-    try {
-      const allTenders: any = await api.get("/api/marketplace/tenders");
-      // Since API returns { success: boolean, message: string, data: any[] }
-      const data = allTenders.data || [];
-      setClaimedTenders(data.filter((t: any) => t.claimedById === session?.user.id));
-    } catch (err) {
-      console.error("Failed to fetch claimed tenders");
-    } finally {
-      setIsLoading(false);
+    if (session) {
+      fetchClaimedTenders();
     }
-  };
+  }, [session, isPending, router, fetchClaimedTenders]);
 
   const handleFulfillTender = async (tenderId: string) => {
     try {
-      const res: any = await api.post(`/api/marketplace/tenders/${tenderId}/fulfill`, {});
+      const res = await api.post<{ message: string }>(`/api/marketplace/tenders/${tenderId}/fulfill`, {});
       toast.success(res.message || "Tender marked as fulfilled! Loop closed.");
       fetchClaimedTenders();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to fulfill tender");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to fulfill tender";
+      toast.error(errorMessage);
     }
   };
 
@@ -78,9 +93,9 @@ export default function ProfilePage() {
         <div className="max-w-7xl mx-auto px-4 py-16">
           <div className="flex flex-col md:flex-row justify-between items-center gap-8 text-center md:text-left">
             <div className="flex flex-col md:flex-row items-center gap-6">
-              <div className="size-24 md:size-32 rounded-3xl bg-primary/10 flex items-center justify-center text-primary border-4 border-primary/20 shadow-xl overflow-hidden">
+              <div className="size-24 md:size-32 rounded-3xl bg-primary/10 flex items-center justify-center text-primary border-4 border-primary/20 shadow-xl overflow-hidden relative">
                 {session?.user?.image ? (
-                  <img src={session.user.image} alt={session.user.name} className="size-full object-cover" />
+                  <Image src={session.user.image} alt={session.user.name} fill className="size-full object-cover" />
                 ) : (
                   <span className="text-5xl font-bold italic">{session?.user?.name?.[0]}</span>
                 )}
@@ -89,7 +104,7 @@ export default function ProfilePage() {
                 <div className="flex flex-col md:flex-row items-center gap-3">
                   <h1 className="text-4xl md:text-5xl font-bold tracking-tight italic">{session?.user?.name}</h1>
                   <Badge className="bg-primary text-white border-0 px-3 py-1 rounded-lg tracking-widest text-[10px] font-bold">
-                    {(session?.user as any)?.role?.toUpperCase() || "UNIVERSAL USER"}
+                    {session?.user?.role?.toUpperCase() || "UNIVERSAL USER"}
                   </Badge>
                 </div>
                 <p className="text-xl text-muted-foreground italic font-medium">{session?.user?.email}</p>
@@ -113,7 +128,7 @@ export default function ProfilePage() {
                 <CardDescription className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
                   Trust Score
                 </CardDescription>
-                <CardTitle className="text-5xl font-mono">{(session?.user as any)?.trustScore || 0}</CardTitle>
+                <CardTitle className="text-5xl font-mono">{session?.user?.trustScore || 0}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-1.5 text-xs text-primary font-bold italic">

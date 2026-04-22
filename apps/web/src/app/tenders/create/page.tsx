@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
 import { api } from "@/lib/api";
@@ -8,14 +8,19 @@ import { Button } from "@impact/ui/components/button";
 import { Input } from "@impact/ui/components/input";
 import { Textarea } from "@impact/ui/components/textarea";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@impact/ui/components/card";
-import { FieldGroup, Field, FieldLabel, FieldDescription } from "@impact/ui/components/field";
+import { FieldGroup, Field, FieldLabel } from "@impact/ui/components/field";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@impact/ui/components/select";
 import { toast } from "@impact/ui/components/sonner";
 import { AlertCircle, MapPin } from "lucide-react";
 
+interface Category {
+  id: string;
+  name: string;
+}
+
 export default function CreateTenderPage() {
   const { data: session, isPending } = useSession();
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
@@ -27,24 +32,24 @@ export default function CreateTenderPage() {
   const [urgency, setUrgency] = useState("normal");
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
 
+  const fetchCategories = useCallback(async () => {
+    try {
+      const data = (await api.get("/api/marketplace/categories")) as Category[];
+      setCategories(data);
+    } catch {
+      toast.error("Failed to load categories");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!isPending && !session) {
       router.push("/sign-in");
       return;
     }
     fetchCategories();
-  }, [session, isPending]);
-
-  const fetchCategories = async () => {
-    try {
-      const data: any = await api.get("/api/marketplace/categories");
-      setCategories(data);
-    } catch (err) {
-      toast.error("Failed to load categories");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [session, isPending, router, fetchCategories]);
 
   const handleGetLocation = () => {
     if ("geolocation" in navigator) {
@@ -85,8 +90,9 @@ export default function CreateTenderPage() {
 
       toast.success("Tender posted successfully!");
       router.push("/");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to post tender");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to post tender";
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -125,7 +131,7 @@ export default function CreateTenderPage() {
                       <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.map((cat: any) => (
+                      {categories.map((cat: Category) => (
                         <SelectItem key={cat.id} value={cat.id}>
                           {cat.name}
                         </SelectItem>

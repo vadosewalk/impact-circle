@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "@/lib/auth-client";
 import { api } from "@/lib/api";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@impact/ui/components/card";
@@ -9,6 +9,7 @@ import { Badge } from "@impact/ui/components/badge";
 import { Input } from "@impact/ui/components/input";
 import { Textarea } from "@impact/ui/components/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@impact/ui/components/tabs";
+import { FieldGroup, Field, FieldLabel } from "@impact/ui/components/field";
 import {
   Dialog,
   DialogContent,
@@ -22,7 +23,6 @@ import { useRouter } from "next/navigation";
 import {
   PlusCircle,
   Users,
-  Wallet,
   Clock,
   CheckCircle2,
   Tag,
@@ -33,14 +33,54 @@ import {
   UserPlus,
   Settings,
   ImagePlus,
-  FileText,
 } from "lucide-react";
+
+interface NgoInfo {
+  id: string;
+  name: string;
+  flags: number;
+}
+
+interface Drive {
+  id: string;
+  ngoId: string;
+  title: string;
+  description: string;
+  status: string;
+  targetFunds: string | number | null;
+  currentFunds: string | number | null;
+  targetVolunteers: number | null;
+  currentVolunteers: number;
+  createdAt: string;
+}
+
+interface Member {
+  id: string;
+  role: string;
+  user: {
+    name: string | null;
+    email: string;
+  };
+}
+
+interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  trustScore?: number;
+}
+
+interface ApiResponse {
+  message?: string;
+}
 
 export default function NgoDashboard() {
   const { data: session, isPending } = useSession();
-  const [myDrives, setMyDrives] = useState<any[]>([]);
-  const [ngoInfo, setNgoInfo] = useState<any>(null);
-  const [members, setMembers] = useState<any[]>([]);
+
+  const [myDrives, setMyDrives] = useState<Drive[]>([]);
+  const [ngoInfo, setNgoInfo] = useState<NgoInfo | null>(null);
+  const [members, setMembers] = useState<Member[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
@@ -56,8 +96,27 @@ export default function NgoDashboard() {
   const [updateImages, setUpdateImages] = useState(""); // Comma separated for now
   const [isSubmittingUpdate, setIsSubmittingUpdate] = useState(false);
 
+  const fetchNgoData = useCallback(async () => {
+    try {
+      const data = await api.get<NgoInfo>("/api/ngo/me");
+      setNgoInfo(data);
+
+      const [allDrives, membersData] = await Promise.all([
+        api.get<Drive[]>("/api/marketplace/drives"),
+        api.get<{ data: Member[] }>("/api/members"),
+      ]);
+
+      setMyDrives(allDrives.filter((d) => d.ngoId === data.id));
+      setMembers(membersData.data || []);
+    } catch {
+      toast.error("Failed to load dashboard data");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    if (!isPending && (!session || (session.user as any).role !== "ngo")) {
+    if (!isPending && (!session || (session.user as AuthUser).role !== "ngo")) {
       router.push("/");
       return;
     }
@@ -65,35 +124,16 @@ export default function NgoDashboard() {
     if (session?.user) {
       fetchNgoData();
     }
-  }, [session, isPending]);
-
-  const fetchNgoData = async () => {
-    try {
-      const data: any = await api.get("/api/ngo/me");
-      setNgoInfo(data);
-
-      const [allDrives, membersData] = await Promise.all([
-        api.get<any[]>("/api/marketplace/drives"),
-        api.get<any>("/api/members"),
-      ]);
-
-      setMyDrives(allDrives.filter((d: any) => d.ngoId === data.id));
-      setMembers(membersData.data || []);
-    } catch (err) {
-      toast.error("Failed to load dashboard data");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [session, isPending, router, fetchNgoData]);
 
   const handleCreateDrive = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res: any = await api.post("/api/marketplace/drives", {
+      const res = await api.post<ApiResponse>("/api/marketplace/drives", {
         title,
         description,
         targetFunds: targetFunds ? parseFloat(targetFunds) : null,
-        targetVolunteers: targetVolunteers ? parseInt(targetVolunteers) : null,
+        targetVolunteers: targetVolunteers ? parseInt(targetVolunteers, 10) : null,
       });
       toast.success(res.message || "Drive created successfully!");
       setTitle("");
@@ -101,8 +141,9 @@ export default function NgoDashboard() {
       setTargetFunds("");
       setTargetVolunteers("");
       fetchNgoData();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to create drive");
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      toast.error(error.message || "Failed to create drive");
     }
   };
 
@@ -114,7 +155,7 @@ export default function NgoDashboard() {
         .split(",")
         .map((img) => img.trim())
         .filter(Boolean);
-      const res: any = await api.post(`/api/marketplace/drives/${driveId}/update`, {
+      const res = await api.post<ApiResponse>(`/api/marketplace/drives/${driveId}/update`, {
         content: updateContent,
         images: images.length > 0 ? images : undefined,
       });
@@ -122,8 +163,9 @@ export default function NgoDashboard() {
       setUpdateContent("");
       setUpdateImages("");
       fetchNgoData();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to post update");
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      toast.error(error.message || "Failed to post update");
     } finally {
       setIsSubmittingUpdate(false);
     }
@@ -133,11 +175,12 @@ export default function NgoDashboard() {
     e.preventDefault();
     try {
       await api.post("/api/members/invite", { email: inviteEmail, role: "member" });
-      toast.success("Invitation sent to " + inviteEmail);
+      toast.success(`Invitation sent to ${inviteEmail}`);
       setInviteEmail("");
       fetchNgoData();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to send invitation");
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      toast.error(error.message || "Failed to send invitation");
     }
   };
 
@@ -182,21 +225,24 @@ export default function NgoDashboard() {
                       Propose a specialized tag for your unique community mission. Admins will triage and potentially
                       push to community poll.
                     </p>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase tracking-widest opacity-60">Tag Name</label>
-                        <Input placeholder="e.g., Post-Flood Debris Clearing" className="h-12 bg-muted/30 border-2" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase tracking-widest opacity-60">
-                          Purpose & Scope
-                        </label>
+                    <FieldGroup>
+                      <Field>
+                        <FieldLabel htmlFor="tagName">Tag Name</FieldLabel>
+                        <Input
+                          id="tagName"
+                          placeholder="e.g., Post-Flood Debris Clearing"
+                          className="h-12 bg-muted/30 border-2"
+                        />
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor="tagPurpose">Purpose & Scope</FieldLabel>
                         <Textarea
+                          id="tagPurpose"
                           placeholder="Explain why this tag is essential..."
                           className="min-h-[120px] bg-muted/30 border-2"
                         />
-                      </div>
-                    </div>
+                      </Field>
+                    </FieldGroup>
                   </div>
                   <DialogFooter>
                     <Button className="w-full h-12 text-lg font-bold italic">Submit Proposal</Button>
@@ -212,58 +258,54 @@ export default function NgoDashboard() {
                     <DialogTitle className="text-3xl font-bold italic">Initialize Impact Drive</DialogTitle>
                   </DialogHeader>
                   <form onSubmit={handleCreateDrive} className="space-y-8 py-6">
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase tracking-widest opacity-60">
-                          Initiative Title
-                        </label>
+                    <FieldGroup>
+                      <Field>
+                        <FieldLabel htmlFor="driveTitle">Initiative Title</FieldLabel>
                         <Input
+                          id="driveTitle"
                           value={title}
                           onChange={(e) => setTitle(e.target.value)}
                           placeholder="e.g., Winter Survival Kits 2026"
                           className="h-12 bg-muted/30 border-2"
                           required
                         />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase tracking-widest opacity-60">
-                          Mission Description
-                        </label>
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor="driveDescription">Mission Description</FieldLabel>
                         <Textarea
+                          id="driveDescription"
                           value={description}
                           onChange={(e) => setDescription(e.target.value)}
                           placeholder="Describe the goals and logistical plan..."
                           className="min-h-[150px] bg-muted/30 border-2"
                           required
                         />
-                      </div>
+                      </Field>
                       <div className="grid grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold uppercase tracking-widest opacity-60">
-                            Fund Target (₹)
-                          </label>
+                        <Field>
+                          <FieldLabel htmlFor="targetFunds">Fund Target (₹)</FieldLabel>
                           <Input
+                            id="targetFunds"
                             type="number"
                             value={targetFunds}
                             onChange={(e) => setTargetFunds(e.target.value)}
                             placeholder="0"
                             className="h-12 bg-muted/30 border-2"
                           />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold uppercase tracking-widest opacity-60">
-                            Volunteer Target
-                          </label>
+                        </Field>
+                        <Field>
+                          <FieldLabel htmlFor="targetVolunteers">Volunteer Target</FieldLabel>
                           <Input
+                            id="targetVolunteers"
                             type="number"
                             value={targetVolunteers}
                             onChange={(e) => setTargetVolunteers(e.target.value)}
                             placeholder="0"
                             className="h-12 bg-muted/30 border-2"
                           />
-                        </div>
+                        </Field>
                       </div>
-                    </div>
+                    </FieldGroup>
                     <DialogFooter>
                       <Button
                         type="submit"
@@ -284,7 +326,7 @@ export default function NgoDashboard() {
                 <CardDescription className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
                   Trust Score
                 </CardDescription>
-                <CardTitle className="text-4xl font-mono">{(session?.user as any)?.trustScore || 0}</CardTitle>
+                <CardTitle className="text-4xl font-mono">{(session?.user as AuthUser)?.trustScore || 0}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-1 text-xs text-primary font-bold italic">
@@ -309,19 +351,19 @@ export default function NgoDashboard() {
               </CardHeader>
             </Card>
             <Card
-              className={`shadow-none border-2 ${ngoInfo?.flags > 0 ? "bg-destructive/5 border-destructive/20" : "bg-muted/30 border-transparent"}`}
+              className={`shadow-none border-2 ${ngoInfo && ngoInfo.flags > 0 ? "bg-destructive/5 border-destructive/20" : "bg-muted/30 border-transparent"}`}
             >
               <CardHeader className="pb-2">
                 <CardDescription
-                  className={`text-[10px] font-bold uppercase tracking-[0.2em] ${ngoInfo?.flags > 0 ? "text-destructive" : ""}`}
+                  className={`text-[10px] font-bold uppercase tracking-[0.2em] ${ngoInfo && ngoInfo.flags > 0 ? "text-destructive" : ""}`}
                 >
                   Community Flags
                 </CardDescription>
-                <CardTitle className={`text-4xl font-mono ${ngoInfo?.flags > 0 ? "text-destructive" : ""}`}>
+                <CardTitle className={`text-4xl font-mono ${ngoInfo && ngoInfo.flags > 0 ? "text-destructive" : ""}`}>
                   {ngoInfo?.flags || 0}
                 </CardTitle>
               </CardHeader>
-              {ngoInfo?.flags > 0 && (
+              {ngoInfo && ngoInfo.flags > 0 && (
                 <CardContent>
                   <div className="flex items-center gap-1 text-xs text-destructive font-bold">
                     <ShieldAlert className="size-3" /> Requires Review
@@ -361,7 +403,7 @@ export default function NgoDashboard() {
 
           <TabsContent value="initiatives" className="mt-0">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {myDrives.map((drive: any) => (
+              {myDrives.map((drive) => (
                 <Card
                   key={drive.id}
                   className="overflow-hidden border-2 hover:border-primary/20 transition-all group shadow-md hover:shadow-xl"
@@ -388,13 +430,13 @@ export default function NgoDashboard() {
                       <div className="flex-1 space-y-2">
                         <div className="flex justify-between text-xs font-bold uppercase tracking-wider opacity-60">
                           <span>Funds</span>
-                          <span>Target: ₹{parseFloat(drive.targetFunds || "0").toLocaleString()}</span>
+                          <span>Target: ₹{parseFloat((drive.targetFunds || "0").toString()).toLocaleString()}</span>
                         </div>
                         <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
                           <div
                             className="h-full bg-primary transition-all duration-1000"
                             style={{
-                              width: `${(parseFloat(drive.currentFunds || "0") / parseFloat(drive.targetFunds || "1")) * 100}%`,
+                              width: `${(parseFloat((drive.currentFunds || "0").toString()) / parseFloat((drive.targetFunds || "1").toString())) * 100}%`,
                             }}
                           />
                         </div>
@@ -431,24 +473,22 @@ export default function NgoDashboard() {
                           <div className="bg-primary/5 p-4 rounded-xl border border-primary/10 text-xs italic font-medium">
                             Posting proof build NGO trust and transparency score. Compulsory for financial transparency.
                           </div>
-                          <div className="space-y-4">
-                            <div className="space-y-2">
-                              <label className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-60">
-                                Update Narrative
-                              </label>
+                          <FieldGroup>
+                            <Field>
+                              <FieldLabel htmlFor="updateNarrative">Update Narrative</FieldLabel>
                               <Textarea
+                                id="updateNarrative"
                                 placeholder="Describe the milestone achieved today..."
                                 className="min-h-[120px] bg-muted/30 border-2"
                                 value={updateContent}
                                 onChange={(e) => setUpdateContent(e.target.value)}
                               />
-                            </div>
-                            <div className="space-y-2">
-                              <label className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-60">
-                                Photo/Receipt URLs
-                              </label>
+                            </Field>
+                            <Field>
+                              <FieldLabel htmlFor="updateImages">Photo/Receipt URLs</FieldLabel>
                               <div className="flex gap-2">
                                 <Input
+                                  id="updateImages"
                                   placeholder="Comma separated URLs for photos or receipts"
                                   className="h-12 bg-muted/30 border-2"
                                   value={updateImages}
@@ -458,8 +498,8 @@ export default function NgoDashboard() {
                                   <ImagePlus className="size-5" />
                                 </Button>
                               </div>
-                            </div>
-                          </div>
+                            </Field>
+                          </FieldGroup>
                         </div>
                         <DialogFooter>
                           <Button
@@ -478,6 +518,7 @@ export default function NgoDashboard() {
                   </CardFooter>
                 </Card>
               ))}
+
               {myDrives.length === 0 && (
                 <div className="col-span-full py-32 text-center border-4 border-dashed rounded-[3rem] bg-muted/10">
                   <div className="size-24 bg-muted/50 rounded-full flex items-center justify-center mx-auto mb-6 text-muted-foreground/30 shadow-inner">
@@ -513,11 +554,10 @@ export default function NgoDashboard() {
                   </div>
                   <CardContent className="pt-8 px-8 pb-8">
                     <form onSubmit={handleInvite} className="space-y-6">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-60">
-                          Professional Email
-                        </label>
+                      <Field>
+                        <FieldLabel htmlFor="inviteEmail">Professional Email</FieldLabel>
                         <Input
+                          id="inviteEmail"
                           type="email"
                           placeholder="colleague@ngo.org"
                           className="h-14 bg-muted/30 border-2 text-lg"
@@ -525,7 +565,7 @@ export default function NgoDashboard() {
                           onChange={(e) => setInviteEmail(e.target.value)}
                           required
                         />
-                      </div>
+                      </Field>
                       <Button
                         className="w-full h-16 text-xl font-bold italic gap-3 shadow-xl shadow-primary/10"
                         type="submit"
@@ -558,7 +598,7 @@ export default function NgoDashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y italic">
-                      {members.map((m: any) => (
+                      {members.map((m) => (
                         <tr key={m.id} className="hover:bg-muted/10 transition-colors group">
                           <td className="px-8 py-6">
                             <div className="flex items-center gap-4">

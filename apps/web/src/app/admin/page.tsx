@@ -1,31 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "@/lib/auth-client";
 import { api } from "@/lib/api";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@impact/ui/components/card";
 import { Button } from "@impact/ui/components/button";
 import { Badge } from "@impact/ui/components/badge";
-import { Input } from "@impact/ui/components/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@impact/ui/components/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@impact/ui/components/dialog";
+import { Dialog, DialogContent, DialogTrigger } from "@impact/ui/components/dialog";
 import { toast } from "@impact/ui/components/sonner";
 import { useRouter } from "next/navigation";
 import {
-  Video,
   CheckCircle2,
   XCircle,
   Calendar,
-  PlusCircle,
   ShieldCheck,
-  AlertTriangle,
   Building2,
   Users2,
   FileText,
@@ -33,21 +22,63 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 
+interface PendingNgo {
+  id: string;
+  name: string;
+  description: string;
+  registrationNumber: string;
+  geoRadius: number;
+  auditScheduledAt?: string;
+  auditMeetLink?: string;
+  user?: {
+    name: string;
+    email: string;
+  };
+}
+
+interface PendingCategory {
+  id: string;
+  name: string;
+  description: string;
+}
+
+interface Organization {
+  id: string;
+  name: string;
+  ngo?: {
+    status: string;
+  };
+  members?: unknown[];
+}
+
 export default function AdminDashboard() {
   const { data: session, isPending } = useSession();
-  const [pendingNgos, setPendingNgos] = useState<any[]>([]);
-  const [pendingCats, setPendingCats] = useState<any[]>([]);
-  const [allOrgs, setAllOrgs] = useState<any[]>([]);
+  const [pendingNgos, setPendingNgos] = useState<PendingNgo[]>([]);
+  const [pendingCats, setPendingCats] = useState<PendingCategory[]>([]);
+  const [allOrgs, setAllOrgs] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  // Scheduling state
-  const [schedulingId, setSchedulingId] = useState<string | null>(null);
-  const [meetTime, setMeetTime] = useState("");
-  const [meetLink, setMeetLink] = useState("");
+  const fetchAdminData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [ngos, cats, orgs] = await Promise.all([
+        api.get<PendingNgo[]>("/api/admin/ngos/pending"),
+        api.get<PendingCategory[]>("/api/admin/categories/pending"),
+        api.get<{ data: Organization[] }>("/api/admin/organizations"),
+      ]);
+      setPendingNgos(ngos);
+      setPendingCats(cats);
+      setAllOrgs(orgs.data || []);
+    } catch (_err) {
+      toast.error("Failed to fetch admin data");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    if (!isPending && (!session || (session.user as any).role !== "admin")) {
+    if (!isPending && (!session || session.user.role !== "admin")) {
       router.push("/");
       return;
     }
@@ -55,50 +86,16 @@ export default function AdminDashboard() {
     if (session?.user) {
       fetchAdminData();
     }
-  }, [session, isPending]);
-
-  const fetchAdminData = async () => {
-    setIsLoading(true);
-    try {
-      const [ngos, cats, orgs] = await Promise.all([
-        api.get<any[]>("/api/admin/ngos/pending"),
-        api.get<any[]>("/api/admin/categories/pending"),
-        api.get<any>("/api/admin/organizations"),
-      ]);
-      setPendingNgos(ngos);
-      setPendingCats(cats);
-      setAllOrgs(orgs.data || []);
-    } catch (err) {
-      toast.error("Failed to fetch admin data");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleScheduleMeet = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!schedulingId) return;
-
-    try {
-      await api.post(`/api/admin/ngos/${schedulingId}/schedule`, {
-        scheduledAt: meetTime,
-        meetLink: meetLink,
-      });
-      toast.success("Meet scheduled and NGO notified.");
-      setSchedulingId(null);
-      fetchAdminData();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to schedule");
-    }
-  };
+  }, [session, isPending, router, fetchAdminData]);
 
   const handleVerify = async (id: string, status: "verified" | "rejected") => {
     try {
-      const res: any = await api.post(`/api/admin/ngos/${id}/status`, { status });
+      const res = await api.post<{ message: string }>(`/api/admin/ngos/${id}/status`, { status });
       toast.success(res.message || `NGO status updated to ${status}`);
       fetchAdminData();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to update status");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to update status";
+      toast.error(errorMessage);
     }
   };
 
@@ -199,7 +196,7 @@ export default function AdminDashboard() {
 
           <TabsContent value="ngos" className="mt-0">
             <div className="grid gap-8">
-              {pendingNgos.map((ngo: any) => (
+              {pendingNgos.map((ngo) => (
                 <Card key={ngo.id} className="overflow-hidden border-2 border-orange-200/50 shadow-lg group">
                   <div className="h-2 bg-orange-400" />
                   <CardHeader className="p-8 pb-4">
@@ -257,7 +254,11 @@ export default function AdminDashboard() {
                             variant="ghost"
                             size="sm"
                             className="w-full text-[10px] font-bold tracking-tighter"
-                            onClick={() => window.open(ngo.auditMeetLink, "_blank")}
+                            onClick={() => {
+                              if (ngo.auditMeetLink) {
+                                window.open(ngo.auditMeetLink, "_blank");
+                              }
+                            }}
                           >
                             JOIN AUDIT SESSION <ArrowUpRight className="size-3 ml-1" />
                           </Button>
@@ -271,9 +272,13 @@ export default function AdminDashboard() {
                   </CardContent>
                   <CardFooter className="px-8 py-6 bg-muted/20 border-t flex justify-end gap-4">
                     <Dialog>
-                      <DialogTrigger render={<Button variant="outline" className="h-12 px-8 border-2 gap-2" />}>
-                        <Calendar className="size-4" /> Reschedule Session
-                      </DialogTrigger>
+                      <DialogTrigger
+                        render={
+                          <Button variant="outline" className="h-12 px-8 border-2 gap-2">
+                            <Calendar className="size-4" /> Reschedule Session
+                          </Button>
+                        }
+                      />
                       <DialogContent>{/* ... Scheduling Form ... */}</DialogContent>
                     </Dialog>
                     <Button
@@ -324,7 +329,7 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y border-t">
-                  {allOrgs.map((org: any) => (
+                  {allOrgs.map((org) => (
                     <tr key={org.id} className="group hover:bg-muted/10 transition-colors">
                       <td className="px-10 py-8">
                         <div className="flex items-center gap-4">

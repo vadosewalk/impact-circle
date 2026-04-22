@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@impact/ui/components/tabs";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@impact/ui/components/card";
 import { Button } from "@impact/ui/components/button";
 import { Badge } from "@impact/ui/components/badge";
 import { Input } from "@impact/ui/components/input";
 import { Progress } from "@impact/ui/components/progress";
+import { Field, FieldLabel } from "@impact/ui/components/field";
 import {
   Dialog,
   DialogContent,
@@ -22,10 +23,6 @@ import {
   MapPin,
   Clock,
   MessageSquare,
-  LayoutDashboard,
-  MessageCircle,
-  PlusCircle,
-  CheckCircle2,
   Wallet,
   Users,
   BarChart3,
@@ -36,54 +33,90 @@ import {
 } from "lucide-react";
 import { toast } from "@impact/ui/components/sonner";
 
+interface Tender {
+  id: string;
+  title: string;
+  description: string;
+  urgency: string;
+  createdAt: string;
+  latitude: number | null;
+  targetAmount: string | null;
+  currentAmount: string;
+}
+
+interface DriveUpdate {
+  id: string;
+  content: string;
+  images?: string[];
+  createdAt: string;
+}
+
+interface Drive {
+  id: string;
+  title: string;
+  description: string;
+  ngo: { name: string };
+  currentVolunteers: number;
+  targetVolunteers: number;
+  updates?: DriveUpdate[];
+}
+
+interface Poll {
+  id: string;
+  expiresAt: string;
+  category: { name: string; description: string };
+  votesFor: number;
+  votesAgainst: number;
+}
+
 export default function HomePage() {
   const { data: session } = useSession();
-  const [tenders, setTenders] = useState<any[]>([]);
-  const [drives, setDrives] = useState<any[]>([]);
-  const [polls, setPolls] = useState<any[]>([]);
+  const [tenders, setTenders] = useState<Tender[]>([]);
+  const [drives, setDrives] = useState<Drive[]>([]);
+  const [polls, setPolls] = useState<Poll[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Action state
-  const [text, setText] = useState("");
   const [pledgeAmount, setPledgeAmount] = useState("");
   const [pledgeVolunteers, setPledgeVolunteers] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [tendersData, drivesData, pollsData] = await Promise.all([
-        api.get<any[]>("/api/marketplace/tenders"),
-        api.get<any[]>("/api/marketplace/drives"),
-        api.get<any[]>("/api/marketplace/polls"),
+        api.get<Tender[]>("/api/marketplace/tenders"),
+        api.get<Drive[]>("/api/marketplace/drives"),
+        api.get<Poll[]>("/api/marketplace/polls"),
       ]);
       setTenders(tendersData || []);
       setDrives(drivesData || []);
       setPolls(pollsData || []);
     } catch (err) {
-      console.error("Failed to fetch marketplace data");
+      console.error("Failed to fetch marketplace data", err);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handlePledge = async (tenderId: string) => {
     if (!pledgeAmount && !pledgeVolunteers) return;
     setIsSubmitting(true);
     try {
-      const res: any = await api.post(`/api/marketplace/tenders/${tenderId}/pledge`, {
+      const res = await api.post<{ message: string }>(`/api/marketplace/tenders/${tenderId}/pledge`, {
         amount: parseFloat(pledgeAmount) || 0,
-        volunteers: parseInt(pledgeVolunteers) || 0,
+        volunteers: parseInt(pledgeVolunteers, 10) || 0,
       });
       toast.success(res.message);
       setPledgeAmount("");
       setPledgeVolunteers("");
       fetchData();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to pledge");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to pledge";
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -91,11 +124,12 @@ export default function HomePage() {
 
   const handleVote = async (pollId: string, vote: "for" | "against") => {
     try {
-      const res: any = await api.post(`/api/marketplace/polls/${pollId}/vote`, { vote });
+      const res = await api.post<{ message: string }>(`/api/marketplace/polls/${pollId}/vote`, { vote });
       toast.success(res.message);
       fetchData();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to vote");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to vote";
+      toast.error(message);
     }
   };
 
@@ -121,9 +155,10 @@ export default function HomePage() {
               <>
                 <Link href="/messages" className="hidden md:block">
                   <Button variant="ghost" size="sm" className="gap-2">
-                    <MessageCircle className="size-4" /> Messages
+                    <MessageSquare className="size-4" /> Messages
                   </Button>
                 </Link>
+
                 <Link href="/profile">
                   <Button variant="ghost" size="sm">
                     Profile
@@ -238,7 +273,7 @@ export default function HomePage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {tenders.map((tender: any) => {
+                {tenders.map((tender: Tender) => {
                   const fundProgress = tender.targetAmount
                     ? (parseFloat(tender.currentAmount) / parseFloat(tender.targetAmount)) * 100
                     : 0;
@@ -304,30 +339,38 @@ export default function HomePage() {
                                 </p>
                               </div>
                               <div className="grid grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                  <label className="text-sm font-bold tracking-wider uppercase opacity-70">
+                                <Field className="space-y-2">
+                                  <FieldLabel
+                                    className="text-sm font-bold tracking-wider uppercase opacity-70"
+                                    htmlFor="pledgeAmount"
+                                  >
                                     Financial (₹)
-                                  </label>
+                                  </FieldLabel>
                                   <Input
+                                    id="pledgeAmount"
                                     type="number"
                                     placeholder="0"
                                     className="h-12 text-lg font-mono"
                                     value={pledgeAmount}
                                     onChange={(e) => setPledgeAmount(e.target.value)}
                                   />
-                                </div>
-                                <div className="space-y-2">
-                                  <label className="text-sm font-bold tracking-wider uppercase opacity-70">
+                                </Field>
+                                <Field className="space-y-2">
+                                  <FieldLabel
+                                    className="text-sm font-bold tracking-wider uppercase opacity-70"
+                                    htmlFor="pledgeVolunteers"
+                                  >
                                     Volunteer Hrs
-                                  </label>
+                                  </FieldLabel>
                                   <Input
+                                    id="pledgeVolunteers"
                                     type="number"
                                     placeholder="0"
                                     className="h-12 text-lg font-mono"
                                     value={pledgeVolunteers}
                                     onChange={(e) => setPledgeVolunteers(e.target.value)}
                                   />
-                                </div>
+                                </Field>
                               </div>
                             </div>
                             <DialogFooter>
@@ -356,7 +399,7 @@ export default function HomePage() {
 
           <TabsContent value="drives" className="mt-0">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {drives.map((drive: any) => (
+              {drives.map((drive: Drive) => (
                 <Card key={drive.id} className="flex flex-col h-full border-2 border-primary/10 overflow-hidden group">
                   <div className="h-3 bg-primary" />
                   <CardHeader className="p-6">
@@ -410,7 +453,7 @@ export default function HomePage() {
 
           <TabsContent value="polls">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-              {polls.map((poll: any) => (
+              {polls.map((poll: Poll) => (
                 <Card key={poll.id} className="border-4 border-primary/10 shadow-xl overflow-hidden relative">
                   <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
                     <Vote className="size-32" />
