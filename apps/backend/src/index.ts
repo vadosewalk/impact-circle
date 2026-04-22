@@ -1,29 +1,38 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { auth } from "./lib/auth";
 import { sessionMiddleware } from "./middleware/auth";
 import { ngoRoutes } from "./routes/ngo";
 import { adminRoutes } from "./routes/admin";
-
 import { marketplaceRoutes } from "./routes/marketplace";
-
 import { messageRoutes } from "./routes/messages";
-
 import { accountabilityRoutes } from "./routes/accountability";
 
 type Variables = {
-	user: typeof auth.$Infer.Session.user | undefined;
-	session: typeof auth.$Infer.Session.session | undefined;
+  user: typeof auth.$Infer.Session.user | undefined;
+  session: typeof auth.$Infer.Session.session | undefined;
 };
 
 const app = new Hono<{ Variables: Variables }>();
+
+// CORS Middleware
+app.use(
+  "*",
+  cors({
+    origin: ["http://localhost:3000"],
+    credentials: true,
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 
 // Global Session Middleware
 app.use("*", sessionMiddleware);
 
 // Better Auth Route Handler
 app.on(["POST", "GET"], "/api/auth/*", (c) => {
-	return auth.handler(c.req.raw);
+  return auth.handler(c.req.raw);
 });
 
 // App Routes
@@ -35,7 +44,6 @@ app.route("/api/accountability", accountabilityRoutes);
 
 // Root Route
 app.get("/", (c) => {
-
   return c.json({
     message: "Impact Circle API is running!",
     status: "ok",
