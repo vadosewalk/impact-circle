@@ -9,7 +9,7 @@ export type ApiResponse<T = any> = {
 
 export const apiResponse = (
   c: Context,
-  { success, message, data, errors, status = 200 }: ApiResponse & { status?: number }
+  { success, message, data, errors, status = 200 }: ApiResponse & { status?: number },
 ) => {
   return c.json(
     {
@@ -18,7 +18,7 @@ export const apiResponse = (
       data,
       errors,
     },
-    status as any
+    status as any,
   );
 };
 

@@ -48,11 +48,11 @@ marketplaceRoutes.get("/tenders", async (c) => {
     const uLng = parseFloat(lng);
     const uRad = parseFloat(radius);
 
-    // PostGIS optimized spatial query: 
+    // PostGIS optimized spatial query:
     // ST_DWithin(location, ST_SetSRID(ST_MakePoint(lng, lat), 4326), radius)
     // We also include SOS (urgent) bypass in the SQL where clause
     const spatialFilter = sql`(${tenders.urgency} = 'urgent' OR ST_DWithin(${tenders.location}, ST_SetSRID(ST_MakePoint(${uLng}, ${uLat}), 4326)::geography, ${uRad}))`;
-    
+
     const filteredTenders = await db.query.tenders.findMany({
       where: and(whereClause, spatialFilter),
       with: {
@@ -91,9 +91,10 @@ marketplaceRoutes.post("/tenders", requireAuth, zValidator("json", tenderSchema)
     urgency: body.urgency as any,
     latitude: body.latitude,
     longitude: body.longitude,
-    location: (body.latitude && body.longitude) 
-      ? sql`ST_SetSRID(ST_MakePoint(${parseFloat(body.longitude)}, ${parseFloat(body.latitude)}), 4326)::geography` as any
-      : null,
+    location:
+      body.latitude && body.longitude
+        ? (sql`ST_SetSRID(ST_MakePoint(${parseFloat(body.longitude)}, ${parseFloat(body.latitude)}), 4326)::geography` as any)
+        : null,
     targetAmount: body.targetAmount,
     targetVolunteers: body.targetVolunteers,
   });
@@ -178,7 +179,10 @@ marketplaceRoutes.post("/tenders/:id/fulfill", requireAuth, async (c) => {
 
   await updateTrustScore(currentUser.id, TRUST_POINTS.TENDER_FULFILLED);
 
-  return successResponse(c, `Tender marked as fulfilled. Closing the loop. +${TRUST_POINTS.TENDER_FULFILLED} Trust Score!`);
+  return successResponse(
+    c,
+    `Tender marked as fulfilled. Closing the loop. +${TRUST_POINTS.TENDER_FULFILLED} Trust Score!`,
+  );
 });
 
 marketplaceRoutes.post("/tenders/:id/gratitude", requireAuth, zValidator("json", gratitudeSchema), async (c) => {
@@ -248,68 +252,84 @@ marketplaceRoutes.post("/drives", requireAuth, requireRole("ngo"), zValidator("j
     targetVolunteers: body.targetVolunteers,
     latitude: body.latitude,
     longitude: body.longitude,
-    location: (body.latitude && body.longitude) 
-      ? sql`ST_SetSRID(ST_MakePoint(${parseFloat(body.longitude)}, ${parseFloat(body.latitude)}), 4326)::geography` as any
-      : null,
+    location:
+      body.latitude && body.longitude
+        ? (sql`ST_SetSRID(ST_MakePoint(${parseFloat(body.longitude)}, ${parseFloat(body.latitude)}), 4326)::geography` as any)
+        : null,
   });
   return successResponse(c, "Drive created successfully", { id: newDriveId }, 201);
 });
 
-marketplaceRoutes.post("/drives/:id/update", requireAuth, requireRole("ngo"), zValidator("json", z.object({
-  content: z.string().min(10).max(2000),
-  images: z.array(z.string().url()).optional(),
-})), async (c) => {
-  const driveId = c.req.param("id");
-  const currentUser = c.get("user");
-  const { content, images } = c.req.valid("json");
+marketplaceRoutes.post(
+  "/drives/:id/update",
+  requireAuth,
+  requireRole("ngo"),
+  zValidator(
+    "json",
+    z.object({
+      content: z.string().min(10).max(2000),
+      images: z.array(z.string().url()).optional(),
+    }),
+  ),
+  async (c) => {
+    const driveId = c.req.param("id");
+    const currentUser = c.get("user");
+    const { content, images } = c.req.valid("json");
 
-  const ngoRecord = await db.query.ngo.findFirst({
-    where: eq(ngo.userId, currentUser.id),
-  });
+    const ngoRecord = await db.query.ngo.findFirst({
+      where: eq(ngo.userId, currentUser.id),
+    });
 
-  if (!ngoRecord) return errorResponse(c, "NGO record not found", undefined, 404);
+    if (!ngoRecord) return errorResponse(c, "NGO record not found", undefined, 404);
 
-  const driveRecord = await db.query.drives.findFirst({
-    where: and(eq(drives.id, driveId), eq(drives.ngoId, ngoRecord.id)),
-  });
+    const driveRecord = await db.query.drives.findFirst({
+      where: and(eq(drives.id, driveId), eq(drives.ngoId, ngoRecord.id)),
+    });
 
-  if (!driveRecord) return errorResponse(c, "Drive not found or access denied", undefined, 403);
+    if (!driveRecord) return errorResponse(c, "Drive not found or access denied", undefined, 403);
 
-  await db.insert(driveUpdates).values({
-    id: crypto.randomUUID(),
-    driveId,
-    userId: currentUser.id,
-    content,
-    images,
-  });
+    await db.insert(driveUpdates).values({
+      id: crypto.randomUUID(),
+      driveId,
+      userId: currentUser.id,
+      content,
+      images,
+    });
 
-  await updateTrustScore(currentUser.id, TRUST_POINTS.IMPACT_UPDATE);
+    await updateTrustScore(currentUser.id, TRUST_POINTS.IMPACT_UPDATE);
 
-  return successResponse(c, `Drive update posted successfully. +${TRUST_POINTS.IMPACT_UPDATE} Trust Score!`);
-});
+    return successResponse(c, `Drive update posted successfully. +${TRUST_POINTS.IMPACT_UPDATE} Trust Score!`);
+  },
+);
 
-marketplaceRoutes.post("/categories/request", requireAuth, requireRole("ngo"), zValidator("json", categoryRequestSchema), async (c) => {
-  const currentUser = c.get("user");
-  const { name, description } = c.req.valid("json");
+marketplaceRoutes.post(
+  "/categories/request",
+  requireAuth,
+  requireRole("ngo"),
+  zValidator("json", categoryRequestSchema),
+  async (c) => {
+    const currentUser = c.get("user");
+    const { name, description } = c.req.valid("json");
 
-  const ngoRecord = await db.query.ngo.findFirst({
-    where: eq(ngo.userId, currentUser.id),
-  });
+    const ngoRecord = await db.query.ngo.findFirst({
+      where: eq(ngo.userId, currentUser.id),
+    });
 
-  if (!ngoRecord) return errorResponse(c, "NGO not found", undefined, 404);
+    if (!ngoRecord) return errorResponse(c, "NGO not found", undefined, 404);
 
-  const newCatId = crypto.randomUUID();
-  await db.insert(categories).values({
-    id: newCatId,
-    name,
-    description,
-    isCustom: true,
-    status: "pending",
-    requestedByNgoId: ngoRecord.id,
-  });
+    const newCatId = crypto.randomUUID();
+    await db.insert(categories).values({
+      id: newCatId,
+      name,
+      description,
+      isCustom: true,
+      status: "pending",
+      requestedByNgoId: ngoRecord.id,
+    });
 
-  return successResponse(c, "Category request submitted for admin triage.", { id: newCatId });
-});
+    return successResponse(c, "Category request submitted for admin triage.", { id: newCatId });
+  },
+);
 
 marketplaceRoutes.post("/polls/:id/vote", requireAuth, zValidator("json", pollVoteSchema), async (c) => {
   const pollId = c.req.param("id");

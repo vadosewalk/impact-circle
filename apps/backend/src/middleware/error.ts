@@ -14,7 +14,7 @@ export const errorHandler = (err: Error, c: Context) => {
     c,
     process.env.NODE_ENV === "production" ? "An internal server error occurred" : err.message,
     undefined,
-    500
+    500,
   );
 };
 

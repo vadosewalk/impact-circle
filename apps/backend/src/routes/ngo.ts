@@ -56,11 +56,16 @@ ngoRoutes.post("/onboard", requireAuth, zValidator("json", ngoOnboardSchema), as
 
   await db.update(user).set({ role: "ngo" }).where(eq(user.id, currentUser.id));
 
-  return successResponse(c, "NGO onboarding request submitted successfully", {
-    id: newNgoId,
-    organizationId: org.id,
-    status: "pending",
-  }, 201);
+  return successResponse(
+    c,
+    "NGO onboarding request submitted successfully",
+    {
+      id: newNgoId,
+      organizationId: org.id,
+      status: "pending",
+    },
+    201,
+  );
 });
 
 ngoRoutes.get("/me", requireAuth, async (c) => {
