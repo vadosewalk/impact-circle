@@ -1,6 +1,6 @@
+import * as schema from "@impact/db";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import * as schema from "@impact/db";
 
 export const auth = betterAuth({
   database: drizzleAdapter(schema.db, {
@@ -15,7 +15,7 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
-  trustedOrigins: ["http://localhost:3000"],
+  trustedOrigins: [process.env.FRONTEND_URL || "http://localhost:3000"],
   user: {
     additionalFields: {
       role: {

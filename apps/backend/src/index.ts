@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -20,7 +21,7 @@ const app = new Hono<{ Variables: Variables }>();
 app.use(
   "*",
   cors({
-    origin: ["http://localhost:3000"],
+    origin: [process.env.FRONTEND_URL || "http://localhost:3000"],
     credentials: true,
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
