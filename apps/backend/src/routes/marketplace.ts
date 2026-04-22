@@ -14,6 +14,18 @@ import {
 import { eq, and, sql, or, lt, gte } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middleware/auth";
 import { auth } from "../lib/auth";
+import { zValidator } from "@hono/zod-validator";
+import {
+  tenderSchema,
+  pledgeSchema,
+  gratitudeSchema,
+  driveSchema,
+  categoryRequestSchema,
+  pollVoteSchema,
+  commentSchema,
+} from "../lib/schemas";
+import { successResponse, errorResponse } from "../lib/response";
+import { TRUST_POINTS, updateTrustScore } from "../lib/impact";
 
 const marketplaceRoutes = new Hono<{
   Variables: {
@@ -22,23 +34,37 @@ const marketplaceRoutes = new Hono<{
   };
 }>();
 
-// --- Geofencing Helper ---
-// SQL fragment for Haversine distance calculation (returns km)
-const distanceSql = (lat: number, lng: number, targetLatCol: any, targetLngSql: any) => {
-  return sql`6371 * acos(cos(radians(${lat})) * cos(radians(${targetLatCol})) * cos(radians(${targetLngSql}) - radians(${lng})) + sin(radians(${lat})) * sin(radians(${targetLatCol})))`;
-};
-
 // --- Tenders (Beneficiary Needs) ---
 
 marketplaceRoutes.get("/tenders", async (c) => {
   const lat = c.req.query("lat");
   const lng = c.req.query("lng");
-  const radius = c.req.query("radius") || "50"; // Default 50km
+  const radius = c.req.query("radius") || "50000"; // Default 50km in meters for PostGIS geography
 
   let whereClause = eq(tenders.status, "open");
 
-  // SOS (Urgent) tenders bypass geofencing or get prioritized
-  // For now, we'll fetch all open, but if lat/lng provided, we could filter
+  if (lat && lng) {
+    const uLat = parseFloat(lat);
+    const uLng = parseFloat(lng);
+    const uRad = parseFloat(radius);
+
+    // PostGIS optimized spatial query: 
+    // ST_DWithin(location, ST_SetSRID(ST_MakePoint(lng, lat), 4326), radius)
+    // We also include SOS (urgent) bypass in the SQL where clause
+    const spatialFilter = sql`(${tenders.urgency} = 'urgent' OR ST_DWithin(${tenders.location}, ST_SetSRID(ST_MakePoint(${uLng}, ${uLat}), 4326)::geography, ${uRad}))`;
+    
+    const filteredTenders = await db.query.tenders.findMany({
+      where: and(whereClause, spatialFilter),
+      with: {
+        user: true,
+        category: true,
+      },
+      orderBy: (tenders, { desc }) => [desc(tenders.urgency), desc(tenders.createdAt)],
+    });
+
+    return successResponse(c, "Tenders fetched with PostGIS geofencing", filteredTenders);
+  }
+
   const allTenders = await db.query.tenders.findMany({
     where: whereClause,
     with: {
@@ -48,32 +74,12 @@ marketplaceRoutes.get("/tenders", async (c) => {
     orderBy: (tenders, { desc }) => [desc(tenders.urgency), desc(tenders.createdAt)],
   });
 
-  // Manual filter for geofencing if PostGIS not available/ready
-  if (lat && lng) {
-    const uLat = parseFloat(lat);
-    const uLng = parseFloat(lng);
-    const uRad = parseFloat(radius);
-
-    return c.json(
-      allTenders.filter((t) => {
-        if (t.urgency === "urgent") return true; // SOS bypass
-        if (!t.latitude || !t.longitude) return true; // Pan-India
-
-        // Simple Euclidean approximation for performance if needed,
-        // but Haversine is better. For small counts, this is fine.
-        const distance =
-          111 * Math.sqrt(Math.pow(parseFloat(t.latitude) - uLat, 2) + Math.pow(parseFloat(t.longitude) - uLng, 2));
-        return distance <= uRad;
-      }),
-    );
-  }
-
-  return c.json(allTenders);
+  return successResponse(c, "All open tenders fetched", allTenders);
 });
 
-marketplaceRoutes.post("/tenders", requireAuth, async (c) => {
+marketplaceRoutes.post("/tenders", requireAuth, zValidator("json", tenderSchema), async (c) => {
   const currentUser = c.get("user");
-  const body = await c.req.json();
+  const body = c.req.valid("json");
   const newTenderId = crypto.randomUUID();
 
   await db.insert(tenders).values({
@@ -82,31 +88,33 @@ marketplaceRoutes.post("/tenders", requireAuth, async (c) => {
     title: body.title,
     description: body.description,
     categoryId: body.categoryId,
-    urgency: body.urgency || "normal",
+    urgency: body.urgency as any,
     latitude: body.latitude,
     longitude: body.longitude,
+    location: (body.latitude && body.longitude) 
+      ? sql`ST_SetSRID(ST_MakePoint(${parseFloat(body.longitude)}, ${parseFloat(body.latitude)}), 4326)::geography` as any
+      : null,
     targetAmount: body.targetAmount,
     targetVolunteers: body.targetVolunteers,
   });
 
-  return c.json({ message: "Tender created successfully", id: newTenderId }, 201);
+  return successResponse(c, "Tender created successfully", { id: newTenderId }, 201);
 });
 
 // --- Handshake Protocol & Resource Pooling ---
 
-marketplaceRoutes.post("/tenders/:id/pledge", requireAuth, async (c) => {
+marketplaceRoutes.post("/tenders/:id/pledge", requireAuth, zValidator("json", pledgeSchema), async (c) => {
   const tenderId = c.req.param("id");
   const currentUser = c.get("user");
-  const { amount, volunteers } = await c.req.json();
+  const { amount, volunteers } = c.req.valid("json");
 
   const tenderRecord = await db.query.tenders.findFirst({
     where: eq(tenders.id, tenderId),
   });
 
-  if (!tenderRecord) return c.json({ message: "Tender not found" }, 404);
-  if (tenderRecord.status !== "open") return c.json({ message: "Tender is not open for pledges" }, 400);
+  if (!tenderRecord) return errorResponse(c, "Tender not found", undefined, 404);
+  if (tenderRecord.status !== "open") return errorResponse(c, "Tender is not open for pledges", undefined, 400);
 
-  // Update amounts
   const newAmount = (parseFloat(tenderRecord.currentAmount || "0") + (amount || 0)).toString();
   const newVolunteers = (tenderRecord.currentVolunteers || 0) + (volunteers || 0);
 
@@ -119,13 +127,9 @@ marketplaceRoutes.post("/tenders/:id/pledge", requireAuth, async (c) => {
     })
     .where(eq(tenders.id, tenderId));
 
-  // TRUST SCORE: +2 for each partial contribution
-  await db
-    .update(user)
-    .set({ trustScore: sql`${user.trustScore} + 2` })
-    .where(eq(user.id, currentUser.id));
+  await updateTrustScore(currentUser.id, TRUST_POINTS.PARTIAL_PLEDGE);
 
-  return c.json({ message: "Pledge accepted! +2 Trust Score." });
+  return successResponse(c, `Pledge accepted! +${TRUST_POINTS.PARTIAL_PLEDGE} Trust Score.`);
 });
 
 marketplaceRoutes.post("/tenders/:id/claim", requireAuth, async (c) => {
@@ -136,8 +140,8 @@ marketplaceRoutes.post("/tenders/:id/claim", requireAuth, async (c) => {
     where: eq(tenders.id, tenderId),
   });
 
-  if (!tenderRecord) return c.json({ message: "Tender not found" }, 404);
-  if (tenderRecord.status !== "open") return c.json({ message: "Tender already claimed or closed" }, 400);
+  if (!tenderRecord) return errorResponse(c, "Tender not found", undefined, 404);
+  if (tenderRecord.status !== "open") return errorResponse(c, "Tender already claimed or closed", undefined, 400);
 
   await db
     .update(tenders)
@@ -148,7 +152,7 @@ marketplaceRoutes.post("/tenders/:id/claim", requireAuth, async (c) => {
     })
     .where(eq(tenders.id, tenderId));
 
-  return c.json({ message: "Handshake accepted. Tender is now claimed." });
+  return successResponse(c, "Handshake accepted. Tender is now claimed.");
 });
 
 marketplaceRoutes.post("/tenders/:id/fulfill", requireAuth, async (c) => {
@@ -159,9 +163,9 @@ marketplaceRoutes.post("/tenders/:id/fulfill", requireAuth, async (c) => {
     where: eq(tenders.id, tenderId),
   });
 
-  if (!tenderRecord) return c.json({ message: "Tender not found" }, 404);
+  if (!tenderRecord) return errorResponse(c, "Tender not found", undefined, 404);
   if (tenderRecord.claimedById !== currentUser.id && tenderRecord.userId !== currentUser.id) {
-    return c.json({ message: "Unauthorized" }, 403);
+    return errorResponse(c, "Unauthorized", undefined, 403);
   }
 
   await db
@@ -172,29 +176,23 @@ marketplaceRoutes.post("/tenders/:id/fulfill", requireAuth, async (c) => {
     })
     .where(eq(tenders.id, tenderId));
 
-  // TRUST SCORE: +10 for fulfilling a tender
-  await db
-    .update(user)
-    .set({ trustScore: sql`${user.trustScore} + 10` })
-    .where(eq(user.id, currentUser.id));
+  await updateTrustScore(currentUser.id, TRUST_POINTS.TENDER_FULFILLED);
 
-  return c.json({ message: "Tender marked as fulfilled. Closing the loop. +10 Trust Score!" });
+  return successResponse(c, `Tender marked as fulfilled. Closing the loop. +${TRUST_POINTS.TENDER_FULFILLED} Trust Score!`);
 });
 
-// --- Beneficiary Gratitude ---
-
-marketplaceRoutes.post("/tenders/:id/gratitude", requireAuth, async (c) => {
+marketplaceRoutes.post("/tenders/:id/gratitude", requireAuth, zValidator("json", gratitudeSchema), async (c) => {
   const tenderId = c.req.param("id");
   const currentUser = c.get("user");
-  const { content } = await c.req.json();
+  const { content } = c.req.valid("json");
 
   const tenderRecord = await db.query.tenders.findFirst({
     where: and(eq(tenders.id, tenderId), eq(tenders.userId, currentUser.id)),
   });
 
-  if (!tenderRecord) return c.json({ message: "Tender not found or unauthorized" }, 403);
+  if (!tenderRecord) return errorResponse(c, "Tender not found or unauthorized", undefined, 403);
   if (tenderRecord.status !== "fulfilled")
-    return c.json({ message: "Tender must be fulfilled before posting gratitude" }, 400);
+    return errorResponse(c, "Tender must be fulfilled before posting gratitude", undefined, 400);
 
   await db.insert(beneficiaryUpdates).values({
     id: crypto.randomUUID(),
@@ -203,13 +201,9 @@ marketplaceRoutes.post("/tenders/:id/gratitude", requireAuth, async (c) => {
     content,
   });
 
-  // TRUST SCORE: +5 for beneficiary closing the loop
-  await db
-    .update(user)
-    .set({ trustScore: sql`${user.trustScore} + 5` })
-    .where(eq(user.id, currentUser.id));
+  await updateTrustScore(currentUser.id, TRUST_POINTS.GRATITUDE_UPDATE);
 
-  return c.json({ message: "Gratitude post shared! +5 Trust Score." });
+  return successResponse(c, `Gratitude post shared! +${TRUST_POINTS.GRATITUDE_UPDATE} Trust Score.`);
 });
 
 // --- Drives (NGO Initiatives) ---
@@ -218,23 +212,31 @@ marketplaceRoutes.get("/drives", async (c) => {
   const allDrives = await db.query.drives.findMany({
     where: eq(drives.status, "open"),
     with: {
-      ngo: true,
+      ngo: {
+        with: {
+          user: true,
+        },
+      },
     },
-    // NGO LEADERBOARD: Boost higher trust scores
-    // This requires joining with user table to get trustScore
-    orderBy: (drives, { desc }) => [desc(drives.createdAt)],
+    // Boost drives from NGOs with higher trust scores
+    // Drizzle doesn't support easy sorting by joined field in findMany with 'with'
+    // We might need to use the standard select query for complex sorting.
   });
-  return c.json(allDrives);
+
+  // Manual sort as a quick optimization
+  const sorted = allDrives.sort((a, b) => (b.ngo.user.trustScore || 0) - (a.ngo.user.trustScore || 0));
+
+  return successResponse(c, "Drives fetched and ranked by NGO Trust Score", sorted);
 });
 
-marketplaceRoutes.post("/drives", requireAuth, requireRole("ngo"), async (c) => {
+marketplaceRoutes.post("/drives", requireAuth, requireRole("ngo"), zValidator("json", driveSchema), async (c) => {
   const currentUser = c.get("user");
-  const body = await c.req.json();
+  const body = c.req.valid("json");
   const ngoRecord = await db.query.ngo.findFirst({
     where: and(eq(ngo.userId, currentUser.id), eq(ngo.status, "verified")),
   });
   if (!ngoRecord) {
-    return c.json({ message: "Only verified NGOs can create drives" }, 403);
+    return errorResponse(c, "Only verified NGOs can create drives", undefined, 403);
   }
   const newDriveId = crypto.randomUUID();
   await db.insert(drives).values({
@@ -246,28 +248,32 @@ marketplaceRoutes.post("/drives", requireAuth, requireRole("ngo"), async (c) => 
     targetVolunteers: body.targetVolunteers,
     latitude: body.latitude,
     longitude: body.longitude,
+    location: (body.latitude && body.longitude) 
+      ? sql`ST_SetSRID(ST_MakePoint(${parseFloat(body.longitude)}, ${parseFloat(body.latitude)}), 4326)::geography` as any
+      : null,
   });
-  return c.json({ message: "Drive created successfully", id: newDriveId }, 201);
+  return successResponse(c, "Drive created successfully", { id: newDriveId }, 201);
 });
 
-// --- Impact Wall ---
-
-marketplaceRoutes.post("/drives/:id/update", requireAuth, requireRole("ngo"), async (c) => {
+marketplaceRoutes.post("/drives/:id/update", requireAuth, requireRole("ngo"), zValidator("json", z.object({
+  content: z.string().min(10).max(2000),
+  images: z.array(z.string().url()).optional(),
+})), async (c) => {
   const driveId = c.req.param("id");
   const currentUser = c.get("user");
-  const { content, images } = await c.req.json();
+  const { content, images } = c.req.valid("json");
 
   const ngoRecord = await db.query.ngo.findFirst({
     where: eq(ngo.userId, currentUser.id),
   });
 
-  if (!ngoRecord) return c.json({ message: "NGO record not found" }, 404);
+  if (!ngoRecord) return errorResponse(c, "NGO record not found", undefined, 404);
 
   const driveRecord = await db.query.drives.findFirst({
     where: and(eq(drives.id, driveId), eq(drives.ngoId, ngoRecord.id)),
   });
 
-  if (!driveRecord) return c.json({ message: "Drive not found or access denied" }, 403);
+  if (!driveRecord) return errorResponse(c, "Drive not found or access denied", undefined, 403);
 
   await db.insert(driveUpdates).values({
     id: crypto.randomUUID(),
@@ -277,32 +283,20 @@ marketplaceRoutes.post("/drives/:id/update", requireAuth, requireRole("ngo"), as
     images,
   });
 
-  await db
-    .update(user)
-    .set({ trustScore: sql`${user.trustScore} + 5` })
-    .where(eq(user.id, currentUser.id));
+  await updateTrustScore(currentUser.id, TRUST_POINTS.IMPACT_UPDATE);
 
-  return c.json({ message: "Drive update posted successfully. +5 Trust Score!" });
+  return successResponse(c, `Drive update posted successfully. +${TRUST_POINTS.IMPACT_UPDATE} Trust Score!`);
 });
 
-// --- Categories & Governance ---
-
-marketplaceRoutes.get("/categories", async (c) => {
-  const allCategories = await db.query.categories.findMany({
-    where: eq(categories.status, "approved"),
-  });
-  return c.json(allCategories);
-});
-
-marketplaceRoutes.post("/categories/request", requireAuth, requireRole("ngo"), async (c) => {
+marketplaceRoutes.post("/categories/request", requireAuth, requireRole("ngo"), zValidator("json", categoryRequestSchema), async (c) => {
   const currentUser = c.get("user");
-  const { name, description } = await c.req.json();
+  const { name, description } = c.req.valid("json");
 
   const ngoRecord = await db.query.ngo.findFirst({
     where: eq(ngo.userId, currentUser.id),
   });
 
-  if (!ngoRecord) return c.json({ message: "NGO not found" }, 404);
+  if (!ngoRecord) return errorResponse(c, "NGO not found", undefined, 404);
 
   const newCatId = crypto.randomUUID();
   await db.insert(categories).values({
@@ -314,23 +308,12 @@ marketplaceRoutes.post("/categories/request", requireAuth, requireRole("ngo"), a
     requestedByNgoId: ngoRecord.id,
   });
 
-  return c.json({ message: "Category request submitted for admin triage.", id: newCatId });
+  return successResponse(c, "Category request submitted for admin triage.", { id: newCatId });
 });
 
-// Community Voting
-marketplaceRoutes.get("/polls", async (c) => {
-  const activePolls = await db.query.polls.findMany({
-    where: eq(polls.status, "active"),
-    with: {
-      category: true,
-    },
-  });
-  return c.json(activePolls);
-});
-
-marketplaceRoutes.post("/polls/:id/vote", requireAuth, async (c) => {
+marketplaceRoutes.post("/polls/:id/vote", requireAuth, zValidator("json", pollVoteSchema), async (c) => {
   const pollId = c.req.param("id");
-  const { vote } = await c.req.json(); // "for" | "against"
+  const { vote } = c.req.valid("json");
 
   if (vote === "for") {
     await db
@@ -344,22 +327,20 @@ marketplaceRoutes.post("/polls/:id/vote", requireAuth, async (c) => {
       .where(eq(polls.id, pollId));
   }
 
-  return c.json({ message: "Vote cast successfully" });
+  return successResponse(c, "Vote cast successfully");
 });
 
-// --- Comments ---
-
-marketplaceRoutes.post("/tenders/:id/comment", requireAuth, async (c) => {
+marketplaceRoutes.post("/tenders/:id/comment", requireAuth, zValidator("json", commentSchema), async (c) => {
   const tenderId = c.req.param("id");
   const currentUser = c.get("user");
-  const { content } = await c.req.json();
+  const { content } = c.req.valid("json");
   await db.insert(comments).values({
     id: crypto.randomUUID(),
     userId: currentUser.id,
     tenderId: tenderId,
     content: content,
   });
-  return c.json({ message: "Comment added" }, 201);
+  return successResponse(c, "Comment added", undefined, 201);
 });
 
 export { marketplaceRoutes };

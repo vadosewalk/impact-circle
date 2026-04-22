@@ -1,8 +1,11 @@
 import { Hono } from "hono";
 import { db, messages } from "@impact/db";
-import { eq, or, and } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import { requireAuth } from "../middleware/auth";
 import { auth } from "../lib/auth";
+import { zValidator } from "@hono/zod-validator";
+import { sendMessageSchema } from "../lib/schemas";
+import { successResponse } from "../lib/response";
 
 const messageRoutes = new Hono<{
   Variables: {
@@ -11,7 +14,6 @@ const messageRoutes = new Hono<{
   };
 }>();
 
-// List messages (conversations)
 messageRoutes.get("/", requireAuth, async (c) => {
   const currentUser = c.get("user");
 
@@ -20,18 +22,12 @@ messageRoutes.get("/", requireAuth, async (c) => {
     orderBy: (messages, { desc }) => [desc(messages.createdAt)],
   });
 
-  return c.json(allMessages);
+  return successResponse(c, "Messages fetched", allMessages);
 });
 
-// Send Short DM
-messageRoutes.post("/send", requireAuth, async (c) => {
+messageRoutes.post("/send", requireAuth, zValidator("json", sendMessageSchema), async (c) => {
   const currentUser = c.get("user");
-  const { receiverId, content } = await c.req.json();
-
-  // Content length check (max 500 characters)
-  if (content.length > 500) {
-    return c.json({ message: "Message too long. Max 500 characters." }, 400);
-  }
+  const { receiverId, content } = c.req.valid("json");
 
   await db.insert(messages).values({
     id: crypto.randomUUID(),
@@ -40,7 +36,7 @@ messageRoutes.post("/send", requireAuth, async (c) => {
     content: content,
   });
 
-  return c.json({ message: "Message sent" }, 201);
+  return successResponse(c, "Message sent", undefined, 201);
 });
 
 export { messageRoutes };

@@ -1,8 +1,12 @@
 import { Hono } from "hono";
-import { db, user, ngo, tenders, drives } from "@impact/db";
+import { db, user, ngo } from "@impact/db";
 import { eq, sql } from "drizzle-orm";
 import { requireAuth } from "../middleware/auth";
 import { auth } from "../lib/auth";
+import { z } from "zod";
+import { zValidator } from "@hono/zod-validator";
+import { successResponse, errorResponse } from "../lib/response";
+import { TRUST_POINTS, updateTrustScore } from "../lib/impact";
 
 const accountabilityRoutes = new Hono<{
   Variables: {
@@ -11,26 +15,30 @@ const accountabilityRoutes = new Hono<{
   };
 }>();
 
-// Flag a User or NGO
-accountabilityRoutes.post("/flag", requireAuth, async (c) => {
-  const { targetType, targetId } = await c.req.json(); // targetType: "user" | "ngo"
+const flagSchema = z.object({
+  targetType: z.enum(["user", "ngo"]),
+  targetId: z.string(),
+});
+
+accountabilityRoutes.post("/flag", requireAuth, zValidator("json", flagSchema), async (c) => {
+  const { targetType, targetId } = c.req.valid("json");
 
   if (targetType === "user") {
     await db
       .update(user)
       .set({
         flags: sql`${user.flags} + 1`,
-        trustScore: sql`${user.trustScore} - 30`, // TRUST SCORE: -30 for being flagged
       })
       .where(eq(user.id, targetId));
 
-    // Check for 3 strikes
+    await updateTrustScore(targetId, TRUST_POINTS.COMMUNITY_FLAG);
+
     const updatedUser = await db.query.user.findFirst({
       where: eq(user.id, targetId),
     });
 
     if (updatedUser && updatedUser.flags >= 3) {
-      // Auto-suspend user logic could go here
+      // Logic for 3 strikes
       console.log(`User ${targetId} has 3 strikes!`);
     }
   } else if (targetType === "ngo") {
@@ -38,18 +46,14 @@ accountabilityRoutes.post("/flag", requireAuth, async (c) => {
       where: eq(ngo.id, targetId),
     });
 
-    if (!ngoRecord) return c.json({ message: "NGO not found" }, 404);
+    if (!ngoRecord) return errorResponse(c, "NGO not found", undefined, 404);
 
     await db
       .update(ngo)
       .set({ flags: sql`${ngo.flags} + 1` })
       .where(eq(ngo.id, targetId));
 
-    // Reduce trust score of the user who owns the NGO
-    await db
-      .update(user)
-      .set({ trustScore: sql`${user.trustScore} - 30` }) // TRUST SCORE: -30 for being flagged
-      .where(eq(user.id, ngoRecord.userId));
+    await updateTrustScore(ngoRecord.userId, TRUST_POINTS.COMMUNITY_FLAG);
 
     const updatedNgo = await db.query.ngo.findFirst({
       where: eq(ngo.id, targetId),
@@ -60,7 +64,7 @@ accountabilityRoutes.post("/flag", requireAuth, async (c) => {
     }
   }
 
-  return c.json({ message: "Flagged successfully. Trust score reduced." });
+  return successResponse(c, `Flagged successfully. Trust score reduced by ${Math.abs(TRUST_POINTS.COMMUNITY_FLAG)}.`);
 });
 
 export { accountabilityRoutes };

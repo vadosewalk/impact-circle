@@ -9,6 +9,7 @@ import { adminRoutes } from "./routes/admin";
 import { marketplaceRoutes } from "./routes/marketplace";
 import { messageRoutes } from "./routes/messages";
 import { accountabilityRoutes } from "./routes/accountability";
+import { errorHandler, notFoundHandler } from "./middleware/error";
 
 type Variables = {
   user: typeof auth.$Infer.Session.user | undefined;
@@ -16,6 +17,10 @@ type Variables = {
 };
 
 const app = new Hono<{ Variables: Variables }>();
+
+// Global Error Handlers
+app.onError(errorHandler);
+app.notFound(notFoundHandler);
 
 // CORS Middleware
 app.use(
