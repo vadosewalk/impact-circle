@@ -34,8 +34,8 @@ export default function CreateTenderPage() {
 
   const fetchCategories = useCallback(async () => {
     try {
-      const data = (await api.get("/api/marketplace/categories")) as Category[];
-      setCategories(data);
+      const res = (await api.get("/api/marketplace/categories")) as { data: Category[] };
+      setCategories(res.data || []);
     } catch {
       toast.error("Failed to load categories");
     } finally {
@@ -127,7 +127,7 @@ export default function CreateTenderPage() {
                 <Field>
                   <FieldLabel htmlFor="category">Category</FieldLabel>
                   <Select value={categoryId} onValueChange={(val) => setCategoryId(val || "")}>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
                     <SelectContent>
@@ -142,7 +142,7 @@ export default function CreateTenderPage() {
                 <Field>
                   <FieldLabel htmlFor="urgency">Urgency Level</FieldLabel>
                   <Select value={urgency} onValueChange={(val) => setUrgency(val || "normal")}>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
