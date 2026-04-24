@@ -36,42 +36,84 @@ const marketplaceRoutes = new Hono<{
   };
 }>();
 
+// --- Categories ---
+
+marketplaceRoutes.get("/categories", async (c) => {
+  const allCategories = await db
+    .select({
+      id: categories.id,
+      name: categories.name,
+      description: categories.description,
+    })
+    .from(categories)
+    .where(eq(categories.status, "approved"))
+    .orderBy(categories.name);
+
+  return successResponse(c, "Categories fetched successfully", allCategories);
+});
+
 // --- Tenders (Beneficiary Needs) ---
 
 marketplaceRoutes.get("/tenders", zValidator("query", locationQuerySchema), async (c) => {
   const { lat, lng, radius: rawRadius } = c.req.valid("query");
   const radius = rawRadius || 50000; // Default 50km in meters for PostGIS geography
 
-  const whereClause = eq(tenders.status, "open");
+  const conditions = [eq(tenders.status, "open")];
 
   if (lat !== undefined && lng !== undefined) {
-    // PostGIS optimized spatial query:
-    // ST_DWithin(location, ST_SetSRID(ST_MakePoint(lng, lat), 4326), radius)
-    // We also include SOS (urgent) bypass in the SQL where clause
-    const spatialFilter = sql`(${tenders.urgency} = 'urgent' OR ST_DWithin(${tenders.location}, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography, ${radius}))`;
-
-    const filteredTenders = await db.query.tenders.findMany({
-      where: and(whereClause, spatialFilter),
-      with: {
-        user: true,
-        category: true,
-      },
-      orderBy: (tenders, { desc }) => [desc(tenders.urgency), desc(tenders.createdAt)],
-    });
-
-    return successResponse(c, "Tenders fetched with PostGIS geofencing", filteredTenders);
+    conditions.push(
+      sql`(${tenders.urgency} = 'urgent' OR ST_DWithin(${tenders.location}, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography, ${radius}))`,
+    );
   }
 
-  const allTenders = await db.query.tenders.findMany({
-    where: whereClause,
-    with: {
-      user: true,
-      category: true,
-    },
-    orderBy: (tenders, { desc }) => [desc(tenders.urgency), desc(tenders.createdAt)],
-  });
+  const rows = await db
+    .select({
+      tender: {
+        id: tenders.id,
+        userId: tenders.userId,
+        title: tenders.title,
+        description: tenders.description,
+        categoryId: tenders.categoryId,
+        status: tenders.status,
+        urgency: tenders.urgency,
+        latitude: tenders.latitude,
+        longitude: tenders.longitude,
+        targetAmount: tenders.targetAmount,
+        currentAmount: tenders.currentAmount,
+        targetVolunteers: tenders.targetVolunteers,
+        currentVolunteers: tenders.currentVolunteers,
+        claimedById: tenders.claimedById,
+        createdAt: tenders.createdAt,
+        updatedAt: tenders.updatedAt,
+      },
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        image: user.image,
+        trustScore: user.trustScore,
+        role: user.role,
+        bio: user.bio,
+      },
+      category: {
+        id: categories.id,
+        name: categories.name,
+        description: categories.description,
+      },
+    })
+    .from(tenders)
+    .innerJoin(user, eq(tenders.userId, user.id))
+    .innerJoin(categories, eq(tenders.categoryId, categories.id))
+    .where(and(...conditions))
+    .orderBy(desc(tenders.urgency), desc(tenders.createdAt));
 
-  return successResponse(c, "All open tenders fetched", allTenders);
+  const result = rows.map((row) => ({
+    ...row.tender,
+    user: row.user,
+    category: row.category,
+  }));
+
+  return successResponse(c, "Tenders fetched successfully", result);
 });
 
 marketplaceRoutes.post("/tenders", requireAuth, zValidator("json", tenderSchema), async (c) => {
@@ -238,12 +280,46 @@ marketplaceRoutes.get("/drives", zValidator("query", locationQuerySchema), async
 
   const rows = await db
     .select({
-      drive: drives,
-      ngo: ngo,
+      drive: {
+        id: drives.id,
+        ngoId: drives.ngoId,
+        title: drives.title,
+        description: drives.description,
+        targetFunds: drives.targetFunds,
+        currentFunds: drives.currentFunds,
+        targetVolunteers: drives.targetVolunteers,
+        currentVolunteers: drives.currentVolunteers,
+        status: drives.status,
+        latitude: drives.latitude,
+        longitude: drives.longitude,
+        createdAt: drives.createdAt,
+        updatedAt: drives.updatedAt,
+      },
+      ngo: {
+        id: ngo.id,
+        userId: ngo.userId,
+        organizationId: ngo.organizationId,
+        name: ngo.name,
+        description: ngo.description,
+        status: ngo.status,
+        geoRadius: ngo.geoRadius,
+        address: ngo.address,
+        registrationNumber: ngo.registrationNumber,
+        flags: ngo.flags,
+        auditMeetLink: ngo.auditMeetLink,
+        auditScheduledAt: ngo.auditScheduledAt,
+        documents: ngo.documents,
+        createdAt: ngo.createdAt,
+        updatedAt: ngo.updatedAt,
+      },
       user: {
         id: user.id,
         name: user.name,
+        email: user.email,
+        image: user.image,
         trustScore: user.trustScore,
+        role: user.role,
+        bio: user.bio,
       },
     })
     .from(drives)
@@ -365,6 +441,32 @@ marketplaceRoutes.post(
     return successResponse(c, "Category request submitted for admin triage.", { id: newCatId });
   },
 );
+
+marketplaceRoutes.get("/polls", async (c) => {
+  const activePolls = await db
+    .select({
+      id: polls.id,
+      categoryId: polls.categoryId,
+      title: polls.title,
+      description: polls.description,
+      votesFor: polls.votesFor,
+      votesAgainst: polls.votesAgainst,
+      expiresAt: polls.expiresAt,
+      status: polls.status,
+      createdAt: polls.createdAt,
+      category: {
+        id: categories.id,
+        name: categories.name,
+        description: categories.description,
+      },
+    })
+    .from(polls)
+    .innerJoin(categories, eq(polls.categoryId, categories.id))
+    .where(eq(polls.status, "active"))
+    .orderBy(desc(polls.createdAt));
+
+  return successResponse(c, "Active polls fetched successfully", activePolls);
+});
 
 marketplaceRoutes.post("/polls/:id/vote", requireAuth, zValidator("json", pollVoteSchema), async (c) => {
   const pollId = c.req.param("id");
