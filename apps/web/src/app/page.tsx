@@ -79,6 +79,7 @@ interface Poll {
 
 export default function HomePage() {
   const { data: session } = useSession();
+  console.log("HOMEPAGE SESSION:", session);
   const [tenders, setTenders] = useState<Tender[]>([]);
   const [drives, setDrives] = useState<Drive[]>([]);
   const [polls, setPolls] = useState<Poll[]>([]);
@@ -147,6 +148,10 @@ export default function HomePage() {
 
     return (
       <div className="min-h-screen bg-[#f0f2f5] dark:bg-[#030303] selection:bg-primary/20 text-foreground transition-colors duration-300">
+        {/* SESSION DEBUG OVERLAY */}
+        <div className="fixed bottom-4 right-4 z-[9999] bg-green-500 text-white p-2 rounded text-[10px] font-mono shadow-2xl">
+          AUTH: {session.user.email}
+        </div>
         <nav className="border-b bg-background/80 backdrop-blur-xl sticky top-0 z-50 transition-colors duration-300">
           <div className="max-w-[1400px] mx-auto px-4 h-16 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2 group">
