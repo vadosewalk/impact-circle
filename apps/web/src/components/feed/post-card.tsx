@@ -1,16 +1,16 @@
 "use client";
 
-import { 
-  MessageSquare, 
-  Share2, 
-  MapPin, 
-  Clock, 
-  ShieldCheck, 
-  Award, 
+import {
+  MessageSquare,
+  Share2,
+  MapPin,
+  Clock,
+  ShieldCheck,
+  Award,
   ArrowUpRight,
   Plus,
   Users,
-  Wallet
+  Wallet,
 } from "lucide-react";
 import { Card } from "@impact/ui/components/card";
 import { Button } from "@impact/ui/components/button";
@@ -54,19 +54,19 @@ export function PostCard({
   metrics,
   onAction,
   actionLabel,
-  renderAction
+  renderAction,
 }: PostCardProps) {
   const isUrgent = urgency === "urgent";
   const progress = metrics.target ? (Number(metrics.current) / Number(metrics.target)) * 100 : 0;
 
   const actionTrigger = (
-    <Button 
+    <Button
       onClick={onAction}
       className={cn(
         "h-10 px-6 rounded-xl font-black uppercase text-xs tracking-widest shadow-lg transition-all duration-300",
-        isUrgent 
-          ? "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-destructive/20" 
-          : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/20"
+        isUrgent
+          ? "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-destructive/20"
+          : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/20",
       )}
     >
       {actionLabel}
@@ -75,14 +75,14 @@ export function PostCard({
   );
 
   return (
-    <Card className={cn(
-      "group relative overflow-hidden transition-all duration-300 hover:shadow-xl border-border/50",
-      isUrgent && "border-destructive/20 bg-destructive/[0.02]"
-    )}>
-      {isUrgent && (
-        <div className="absolute top-0 left-0 w-full h-1 bg-destructive animate-pulse" />
+    <Card
+      className={cn(
+        "group relative overflow-hidden transition-all duration-300 hover:shadow-xl border-border/50",
+        isUrgent && "border-destructive/20 bg-destructive/[0.02]",
       )}
-      
+    >
+      {isUrgent && <div className="absolute top-0 left-0 w-full h-1 bg-destructive animate-pulse" />}
+
       <div className="p-4 sm:p-6">
         {/* Header (Avatar, Name, Timestamp) */}
         <div className="flex items-start justify-between mb-4">
@@ -103,7 +103,10 @@ export function PostCard({
                   <ShieldCheck className="size-4 text-primary fill-primary/10" />
                 )}
                 {type === "drive" && (
-                  <Badge variant="outline" className="text-[10px] h-4 px-1.5 uppercase font-bold tracking-tight bg-secondary/20 border-secondary/30 text-secondary-foreground">
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] h-4 px-1.5 uppercase font-bold tracking-tight bg-secondary/20 border-secondary/30 text-secondary-foreground"
+                  >
                     NGO
                   </Badge>
                 )}
@@ -124,7 +127,10 @@ export function PostCard({
             </div>
           </div>
           {isUrgent && (
-            <Badge variant="destructive" className="animate-bounce-subtle shadow-lg shadow-destructive/20 uppercase text-[10px] font-black tracking-widest px-2 py-0.5">
+            <Badge
+              variant="destructive"
+              className="animate-bounce-subtle shadow-lg shadow-destructive/20 uppercase text-[10px] font-black tracking-widest px-2 py-0.5"
+            >
               Urgent
             </Badge>
           )}
@@ -135,9 +141,7 @@ export function PostCard({
           <h2 className="text-xl font-extrabold text-foreground leading-tight mb-2 group-hover:underline decoration-primary/30 underline-offset-4 decoration-2 cursor-pointer">
             {title}
           </h2>
-          <p className="text-muted-foreground line-clamp-3 leading-relaxed text-sm">
-            {description}
-          </p>
+          <p className="text-muted-foreground line-clamp-3 leading-relaxed text-sm">{description}</p>
         </div>
 
         {/* Metrics */}
@@ -166,16 +170,24 @@ export function PostCard({
         {/* Footer Actions */}
         <div className="flex items-center justify-between pt-4 border-t border-border/40">
           <div className="flex items-center gap-1 sm:gap-2">
-            <Button variant="ghost" size="sm" className="h-9 px-3 rounded-xl hover:bg-primary/5 text-muted-foreground hover:text-primary transition-all">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9 px-3 rounded-xl hover:bg-primary/5 text-muted-foreground hover:text-primary transition-all"
+            >
               <MessageSquare className="size-4 mr-2" />
               <span className="font-bold">24</span>
             </Button>
-            <Button variant="ghost" size="sm" className="h-9 px-3 rounded-xl hover:bg-secondary/10 text-muted-foreground hover:text-secondary transition-all">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9 px-3 rounded-xl hover:bg-secondary/10 text-muted-foreground hover:text-secondary transition-all"
+            >
               <Share2 className="size-4 mr-2" />
               <span className="font-bold">Share</span>
             </Button>
           </div>
-          
+
           {renderAction ? renderAction(actionTrigger) : actionTrigger}
         </div>
       </div>

@@ -19,7 +19,7 @@ export function CreatePost({ userImage }: CreatePostProps) {
           <User className="size-6 text-primary" />
         )}
       </div>
-      
+
       <Link href="/tenders/create" className="flex-1">
         <div className="h-10 sm:h-12 px-5 rounded-2xl bg-secondary/30 border border-transparent hover:bg-secondary/50 hover:border-primary/20 transition-all flex items-center text-muted-foreground text-sm font-medium cursor-text">
           Post a community need or NGO initiative...
@@ -27,10 +27,18 @@ export function CreatePost({ userImage }: CreatePostProps) {
       </Link>
 
       <div className="hidden sm:flex items-center gap-1">
-        <Button variant="ghost" size="icon" className="size-11 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-11 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all"
+        >
           <ImageIcon className="size-5" />
         </Button>
-        <Button variant="ghost" size="icon" className="size-11 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-11 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all"
+        >
           <LinkIcon className="size-5" />
         </Button>
       </div>

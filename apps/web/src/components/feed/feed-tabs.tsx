@@ -25,9 +25,9 @@ export function FeedTabs({ activeTab, onTabChange }: FeedTabsProps) {
             onClick={() => onTabChange(tab.id)}
             className={cn(
               "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl transition-all duration-300 font-bold text-sm",
-              isActive 
-                ? "bg-card text-primary shadow-sm ring-1 ring-border/50" 
-                : "text-muted-foreground hover:bg-card/50 hover:text-foreground"
+              isActive
+                ? "bg-card text-primary shadow-sm ring-1 ring-border/50"
+                : "text-muted-foreground hover:bg-card/50 hover:text-foreground",
             )}
           >
             <tab.icon className={cn("size-4 transition-transform duration-300", isActive && "scale-110")} />

@@ -3,17 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@impact/ui/lib/utils";
-import { 
-  Home, 
-  Search, 
-  Bell, 
-  MessageSquare, 
-  User, 
-  PlusCircle, 
-  ShieldCheck, 
+import {
+  Home,
+  Search,
+  Bell,
+  MessageSquare,
+  User,
+  PlusCircle,
+  ShieldCheck,
   TrendingUp,
   LayoutDashboard,
-  Settings
+  Settings,
 } from "lucide-react";
 import { Button } from "@impact/ui/components/button";
 
@@ -27,11 +27,15 @@ interface NavItemProps {
 function NavItem({ href, icon: Icon, label, active }: NavItemProps) {
   return (
     <Link href={href}>
-      <div className={cn(
-        "flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 group hover:bg-primary/10",
-        active ? "bg-primary/10 text-primary font-bold" : "text-muted-foreground hover:text-foreground"
-      )}>
-        <Icon className={cn("size-6 transition-transform duration-200 group-hover:scale-110", active && "text-primary")} />
+      <div
+        className={cn(
+          "flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 group hover:bg-primary/10",
+          active ? "bg-primary/10 text-primary font-bold" : "text-muted-foreground hover:text-foreground",
+        )}
+      >
+        <Icon
+          className={cn("size-6 transition-transform duration-200 group-hover:scale-110", active && "text-primary")}
+        />
         <span className="text-base">{label}</span>
       </div>
     </Link>
@@ -59,27 +63,25 @@ export function SidebarNav() {
     <aside className="hidden lg:flex flex-col w-72 sticky top-20 h-[calc(100vh-5rem)] pb-8 overflow-y-auto scrollbar-hide">
       <div className="space-y-2">
         {primaryNav.map((item) => (
-          <NavItem 
-            key={item.href} 
-            href={item.href} 
-            icon={item.icon} 
-            label={item.label} 
+          <NavItem
+            key={item.href}
+            href={item.href}
+            icon={item.icon}
+            label={item.label}
             active={pathname === item.href}
           />
         ))}
       </div>
 
       <div className="mt-8 pt-8 border-t border-border">
-        <h3 className="px-4 mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-          Personal
-        </h3>
+        <h3 className="px-4 mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Personal</h3>
         <div className="space-y-2">
           {personalNav.map((item) => (
-            <NavItem 
-              key={item.href} 
-              href={item.href} 
-              icon={item.icon} 
-              label={item.label} 
+            <NavItem
+              key={item.href}
+              href={item.href}
+              icon={item.icon}
+              label={item.label}
               active={pathname === item.href}
             />
           ))}

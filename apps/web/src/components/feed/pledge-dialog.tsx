@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { Wallet } from "lucide-react";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger, 
-  DialogFooter 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
 } from "@impact/ui/components/dialog";
 import { Button } from "@impact/ui/components/button";
 import { Input } from "@impact/ui/components/input";
@@ -49,13 +49,17 @@ export function PledgeDialog({ tenderId, tenderTitle, onPledge, isSubmitting, tr
           <div className="bg-primary/[0.03] p-4 rounded-2xl border border-primary/10 text-xs leading-relaxed">
             <p className="font-bold text-primary mb-1 uppercase tracking-widest">Handshake Protocol</p>
             <p className="text-muted-foreground/80">
-              Pledges are non-binding commitments. You'll be notified to coordinate logistics once the target is reached.
+              Pledges are non-binding commitments. You'll be notified to coordinate logistics once the target is
+              reached.
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <Field className="space-y-2">
-              <FieldLabel htmlFor="pledgeAmount" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-70">
+              <FieldLabel
+                htmlFor="pledgeAmount"
+                className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-70"
+              >
                 Financial (₹)
               </FieldLabel>
               <Input
@@ -68,7 +72,10 @@ export function PledgeDialog({ tenderId, tenderTitle, onPledge, isSubmitting, tr
               />
             </Field>
             <Field className="space-y-2">
-              <FieldLabel htmlFor="pledgeVolunteers" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-70">
+              <FieldLabel
+                htmlFor="pledgeVolunteers"
+                className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-70"
+              >
                 Volunteer Hrs
               </FieldLabel>
               <Input
