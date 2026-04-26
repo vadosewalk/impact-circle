@@ -1,6 +1,6 @@
 [build]
-  command = "pnpm build"
-  functions = "dist"
+  command = "pnpm build --filter=backend"
+  functions = "apps/backend/dist"
 
 [[redirects]]
   from = "/*"
