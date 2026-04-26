@@ -1,10 +1,14 @@
 "use client";
 
+import { useSession } from "@/lib/auth-client";
+import { Avatar, AvatarFallback, AvatarImage } from "@impact/ui/components/avatar";
+import { cn } from "@impact/ui/lib/utils";
+import { Bell, HandHeart, Home, MessageSquare, Settings, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, HandHeart, ShieldCheck, MessageSquare, User, Settings, Bell, Plus } from "lucide-react";
-import { cn } from "@impact/ui/lib/utils";
-import { Button } from "@impact/ui/components/button";
+import { Logo } from "../ui-elements/logo";
+import { LatestProtocolUpdate } from "./protocol-update";
+import { ProfileDropdown } from "./profile-dropdown";
 
 const navItems = [
   { label: "Timeline", href: "/dashboard", icon: Home },
@@ -16,10 +20,19 @@ const navItems = [
 
 export function DashboardSidebar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const user = session?.user;
 
   return (
     <div className="flex flex-col h-full bg-background">
-      <div className="flex flex-col flex-1 gap-6 p-4 pt-6">
+      <div className="p-6">
+        <Link href="/" className="flex items-center gap-2">
+          <Logo className="size-8" />
+          <span className="text-xl font-black italic uppercase tracking-tighter">Impact Circle</span>
+        </Link>
+      </div>
+
+      <div className="flex flex-col flex-1 gap-6 p-4">
         <nav className="space-y-1">
           {navItems.map((item) => {
             const isActive = pathname.startsWith(item.href);
@@ -44,20 +57,10 @@ export function DashboardSidebar() {
         <div className="pt-6 border-t space-y-1">
           <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-3 mb-2">Account</h3>
           <Link
-            href="/profile"
-            className={cn(
-              "flex items-center gap-3 px-3 py-2 rounded-md text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors",
-              pathname.startsWith("/profile") && "bg-secondary text-secondary-foreground font-medium",
-            )}
-          >
-            <User className="size-4" />
-            Universal Profile
-          </Link>
-          <Link
             href="/settings"
             className={cn(
               "flex items-center gap-3 px-3 py-2 rounded-md text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors",
-              pathname.startsWith("/settings") && "bg-secondary text-secondary-foreground font-medium",
+              pathname === "/settings" && "bg-secondary text-secondary-foreground font-medium",
             )}
           >
             <Settings className="size-4" />
@@ -66,10 +69,27 @@ export function DashboardSidebar() {
         </div>
       </div>
 
-      <div className="p-4 mt-auto border-t bg-muted/10">
-        <div className="p-4 rounded-lg bg-primary/5 border border-primary/10">
-          <p className="text-[10px] font-bold text-primary uppercase mb-1">Impact Status</p>
-          <p className="text-[12px] font-medium leading-tight">Verified member of the community loop.</p>
+      <div className="mt-auto p-4 space-y-4">
+        <LatestProtocolUpdate />
+
+        <div className="pt-4 border-t flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Avatar className="size-8 rounded-lg">
+              <AvatarImage src={user?.image || undefined} />
+              <AvatarFallback className="rounded-lg bg-primary/5 text-primary text-[10px] font-black uppercase">
+                {user?.name?.[0] || "U"}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col">
+              <span className="text-xs font-bold italic uppercase tracking-tight truncate max-w-[120px]">
+                {user?.name}
+              </span>
+              <span className="text-[10px] text-muted-foreground font-medium truncate max-w-[120px]">
+                {user?.email}
+              </span>
+            </div>
+          </div>
+          <ProfileDropdown />
         </div>
       </div>
     </div>

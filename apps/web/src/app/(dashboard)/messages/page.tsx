@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useSession } from "@/lib/auth-client";
 import { Avatar, AvatarFallback, AvatarImage } from "@impact/ui/components/avatar";
+import { api } from "@/lib/api";
 import { Button } from "@impact/ui/components/button";
 import { ScrollArea } from "@impact/ui/components/scroll-area";
 import { Separator } from "@impact/ui/components/separator";
@@ -48,20 +49,14 @@ export default function MessagesPage() {
 
   const fetchMessages = useCallback(async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ""}/api/messages`, {
-        headers: {
-          Authorization: `Bearer ${session?.session.token}`,
-        },
-      });
-      if (res.ok) {
-        setMessages(await res.json());
-      }
+      const data = await api.get<Message[]>("/api/messages");
+      setMessages(data);
     } catch {
       toast.error("Failed to load messages");
     } finally {
       setIsLoading(false);
     }
-  }, [session?.session.token]);
+  }, []);
 
   useEffect(() => {
     if (!isPending && !session) {
@@ -76,27 +71,14 @@ export default function MessagesPage() {
     if (!newMessage.trim() || !selectedContact) return;
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ""}/api/messages/send`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.session.token}`,
-        },
-        body: JSON.stringify({
-          receiverId: selectedContact,
-          content: newMessage,
-        }),
+      await api.post("/api/messages/send", {
+        receiverId: selectedContact,
+        content: newMessage,
       });
-
-      if (res.ok) {
-        setNewMessage("");
-        fetchMessages();
-      } else {
-        const data = await res.json();
-        toast.error(data.message || "Failed to send message");
-      }
-    } catch {
-      toast.error("An unexpected error occurred");
+      setNewMessage("");
+      fetchMessages();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send message");
     }
   };
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession } from "@/lib/auth-client";
+import { useSession, signOut } from "@/lib/auth-client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,64 +8,71 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@impact/ui/components/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@impact/ui/components/avatar";
-import { Button } from "@impact/ui/components/button";
-import Link from "next/link";
-import { User, Settings, LogOut, CreditCard } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Settings, LogOut, CreditCard, MoreHorizontal, ShieldCheck } from "lucide-react";
+import { toast } from "@impact/ui/components/sonner";
 
 export function ProfileDropdown() {
   const { data: session } = useSession();
   const user = session?.user;
+  const router = useRouter();
 
   if (!user) return null;
+
+  const handleSignOut = async () => {
+    try {
+      await signOut({
+        fetchOptions: {
+          onSuccess: () => {
+            router.push("/sign-in");
+            router.refresh();
+          },
+        },
+      });
+    } catch (err) {
+      toast.error("Failed to sign out safely");
+    }
+  };
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger>
-        <div className="relative h-8 w-8 rounded-full flex items-center justify-center hover:bg-muted transition-colors cursor-pointer border overflow-hidden">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={user.image || undefined} alt={user.name} />
-            <AvatarFallback>{user.name?.[0] || "U"}</AvatarFallback>
-          </Avatar>
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted transition-all cursor-pointer text-muted-foreground hover:text-foreground active:scale-95 border border-transparent hover:border-border">
+          <MoreHorizontal className="size-4" />
         </div>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end">
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col gap-1.5">
-            <p className="text-sm leading-none font-medium">{user.name}</p>
-            <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
-          </div>
-        </DropdownMenuLabel>
+      <DropdownMenuContent className="w-64" align="end" side="top" sideOffset={12}>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>
+            <div className="flex flex-col space-y-1">
+              <span className="text-foreground">{user.name}</span>
+              <span className="text-[9px] lowercase font-medium tracking-normal text-muted-foreground/60">
+                {user.email}
+              </span>
+            </div>
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem>
-            <Link href="/profile" className="w-full flex items-center">
-              <User className="mr-2 h-4 w-4" />
-              Profile
-              <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
-            </Link>
+          <DropdownMenuItem onClick={() => router.push("/settings")}>
+            <Settings className="mr-2 h-4 w-4 text-muted-foreground" />
+            <span className="font-bold italic text-[11px] uppercase tracking-tighter">Command Settings</span>
           </DropdownMenuItem>
-          <DropdownMenuItem>
-            <Link href="/settings" className="w-full flex items-center">
-              <Settings className="mr-2 h-4 w-4" />
-              Settings
-              <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
-            </Link>
+          <DropdownMenuItem onClick={() => router.push("/settings/profile")}>
+            <ShieldCheck className="mr-2 h-4 w-4 text-muted-foreground" />
+            <span className="font-bold italic text-[11px] uppercase tracking-tighter">Impact Ledger</span>
           </DropdownMenuItem>
           <DropdownMenuItem disabled>
-            <CreditCard className="mr-2 h-4 w-4" />
-            Wallet
-            <DropdownMenuShortcut>⌘B</DropdownMenuShortcut>
+            <CreditCard className="mr-2 h-4 w-4 text-muted-foreground" />
+            <span className="font-bold italic text-[11px] uppercase tracking-tighter opacity-50">Impact Wallet</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" onClick={() => (window.location.href = "/api/auth/sign-out")}>
+        <DropdownMenuItem variant="destructive" onClick={handleSignOut}>
           <LogOut className="mr-2 h-4 w-4" />
-          Sign out
-          <DropdownMenuShortcut className="text-current">⇧⌘Q</DropdownMenuShortcut>
+          <span className="font-bold italic text-[11px] uppercase tracking-tighter">Log Out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
