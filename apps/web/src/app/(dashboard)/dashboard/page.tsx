@@ -68,8 +68,6 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      <CreatePostWidget />
-
       <Tabs defaultValue="all" className="w-full flex flex-col">
         <TabsList className="bg-transparent border-b w-full justify-start rounded-none h-auto p-0 mb-6 gap-8 overflow-x-auto no-scrollbar">
           <TabsTrigger

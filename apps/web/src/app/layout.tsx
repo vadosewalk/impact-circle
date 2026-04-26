@@ -20,6 +20,8 @@ const fontMono = Fira_Code({
   variable: "--font-mono",
 });
 
+import { TooltipProvider } from "@impact/ui/components/tooltip";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -33,8 +35,10 @@ export default function RootLayout({
     >
       <body className="font-sans">
         <ThemeProvider>
-          {children}
-          <Toaster />
+          <TooltipProvider>
+            {children}
+            <Toaster />
+          </TooltipProvider>
         </ThemeProvider>
       </body>
     </html>

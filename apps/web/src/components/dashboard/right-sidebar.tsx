@@ -3,9 +3,10 @@
 import { useSession } from "@/lib/auth-client";
 import { Card, CardContent } from "@impact/ui/components/card";
 import { Badge } from "@impact/ui/components/badge";
-import { Shield, Vote, AlertCircle, ExternalLink, ArrowRight } from "lucide-react";
+import { Shield, Vote, AlertCircle, ExternalLink, ArrowRight, Plus } from "lucide-react";
 import { Button } from "@impact/ui/components/button";
 import { Separator } from "@impact/ui/components/separator";
+import Link from "next/link";
 
 export function RightSidebar() {
   const { data: session } = useSession();
@@ -13,6 +14,19 @@ export function RightSidebar() {
 
   return (
     <div className="flex flex-col h-full p-5 gap-6">
+      <div className="flex flex-col gap-2">
+        <Link href="/tenders/create" className="w-full">
+          <Button className="w-full justify-start gap-2 shadow-sm font-semibold" size="lg">
+            <Plus className="size-4" /> CREATE POST
+          </Button>
+        </Link>
+        <p className="text-[10px] text-center text-muted-foreground font-medium uppercase tracking-tight">
+          Request aid or start a verified drive
+        </p>
+      </div>
+
+      <Separator className="opacity-50" />
+
       <div className="space-y-3">
         <h3 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">Account Status</h3>
         <Card className="shadow-none border bg-muted/20 rounded-sm">
