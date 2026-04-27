@@ -1,15 +1,15 @@
 import { handle } from "hono/netlify";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { auth } from "./lib/auth";
-import { sessionMiddleware } from "./middleware/auth";
-import { ngoRoutes } from "./routes/ngo";
-import { adminRoutes } from "./routes/admin";
-import { marketplaceRoutes } from "./routes/marketplace";
-import { messageRoutes } from "./routes/messages";
-import { accountabilityRoutes } from "./routes/accountability";
-import { memberRoutes } from "./routes/members";
-import { errorHandler, notFoundHandler } from "./middleware/error";
+import { auth } from "../lib/auth";
+import { sessionMiddleware } from "../middleware/auth";
+import { ngoRoutes } from "../routes/ngo";
+import { adminRoutes } from "../routes/admin";
+import { marketplaceRoutes } from "../routes/marketplace";
+import { messageRoutes } from "../routes/messages";
+import { accountabilityRoutes } from "../routes/accountability";
+import { memberRoutes } from "../routes/members";
+import { errorHandler, notFoundHandler } from "../middleware/error";
 
 type Variables = {
   user: typeof auth.$Infer.Session.user | undefined;
