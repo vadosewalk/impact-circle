@@ -10,11 +10,11 @@
   package = "@netlify/plugin-nextjs"
 
 [functions]
-  directory = "apps/backend/src"
+  directory = "apps/backend/src/functions"
   node_bundler = "esbuild"
   included_files = ["apps/backend/src/**"]
 
 [[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/netlify"
+  to = "/.netlify/functions/index"
   status = 200
