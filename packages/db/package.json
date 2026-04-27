@@ -20,14 +20,15 @@
   "license": "ISC",
   "packageManager": "pnpm@10.33.0",
   "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "postgres": "^3.4.9"
   },
   "devDependencies": {
+    "@impact/typescript-config": "workspace:*",
     "@types/node": "^25.6.0",
     "drizzle-kit": "^0.31.10",
-    "@impact/typescript-config": "workspace:*",
     "tsdown": "^0.21.9",
     "tsx": "^4.21.0",
     "typescript": "^6.0.3"
