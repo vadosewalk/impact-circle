@@ -4,9 +4,9 @@ const nextConfig = {
   async rewrites() {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
-    // During build or if apiUrl is missing, we skip adding the rewrite
-    // to prevent protocol errors in the destination string.
-    if (!apiUrl) {
+    // During build, if apiUrl is missing, or if it's a relative path (already on the same domain),
+    // we skip the rewrite to let Netlify or the local dev server handle it.
+    if (!apiUrl || !apiUrl.startsWith("http")) {
       return [];
     }
 

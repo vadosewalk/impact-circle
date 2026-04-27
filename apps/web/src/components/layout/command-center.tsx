@@ -38,7 +38,14 @@ export function CommandCenter() {
       // Toggle on Cmd+K, Ctrl+K
       if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) {
         const target = e.target as HTMLElement;
-        if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
+        if (!target) return;
+        
+        const tagName = target.tagName;
+        if (
+          tagName === "INPUT" ||
+          tagName === "TEXTAREA" ||
+          target.isContentEditable
+        ) {
           return;
         }
 
