@@ -17,6 +17,10 @@ export const auth = betterAuth({
       invitation: schema.invitation,
     },
   }),
+  // baseURL should be the public-facing URL of the auth server.
+  // When using Next.js rewrites, this is the frontend URL.
+  baseURL: process.env.BETTER_AUTH_URL || process.env.FRONTEND_URL || "http://localhost:3000",
+  secret: process.env.BETTER_AUTH_SECRET,
   emailAndPassword: {
     enabled: true,
   },
@@ -26,7 +30,11 @@ export const auth = betterAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
     },
   },
-  trustedOrigins: [process.env.FRONTEND_URL || "http://localhost:3000"],
+  trustedOrigins: [process.env.FRONTEND_URL || "http://localhost:3000", "https://impact-circle-web.netlify.app"],
+  advanced: {
+    // Helpful for proxy setups like Netlify/Next.js rewrites
+    useRuntimeConfig: true,
+  },
   plugins: [
     organization({
       allowUserToCreateOrganization: true,

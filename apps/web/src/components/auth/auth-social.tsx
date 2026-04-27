@@ -16,7 +16,7 @@ export function SocialLogins() {
     try {
       await signIn.social({
         provider: "google",
-        callbackURL: `${window.location.origin}/dashboard`,
+        callbackURL: "/dashboard",
       });
     } catch (err) {
       toast.error("Failed to initiate Google authentication");

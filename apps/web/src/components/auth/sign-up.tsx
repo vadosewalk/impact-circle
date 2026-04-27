@@ -45,7 +45,7 @@ export function SignUp() {
         email,
         password,
         name,
-        callbackURL: `${window.location.origin}${userType === "ngo" ? "/onboard" : "/dashboard"}`,
+        callbackURL: userType === "ngo" ? "/onboard" : "/dashboard",
       });
 
       if (error) {

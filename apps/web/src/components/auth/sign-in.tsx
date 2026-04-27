@@ -35,7 +35,7 @@ export function SignIn() {
       const { error } = await signIn.email({
         email,
         password,
-        callbackURL: `${window.location.origin}/dashboard`,
+        callbackURL: "/dashboard",
       });
 
       if (error) {
