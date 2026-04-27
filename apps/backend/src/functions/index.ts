@@ -57,6 +57,15 @@ app.get("/", (c) => {
   });
 });
 
+// Health Check
+app.get("/api/health", (c) => {
+  return c.json({
+    status: "healthy",
+    timestamp: new Date().toISOString(),
+    env: process.env.NODE_ENV,
+  });
+});
+
 // Session Helper / Debug Route
 app.get("/api/me", async (c) => {
   const user = c.get("user");
