@@ -1,6 +1,18 @@
 import type React from "react";
 import { cn } from "@impact/ui/lib/utils";
 
+export const LogoAscii = ({ className }: { className?: string }) => (
+  <pre className={cn("font-mono text-[6px] leading-[1] text-primary select-none", className)}>
+    {`___  ________     
+|\\  \\|\\   ____\\    
+\\ \\  \\ \\  \\___|    
+ \\ \\  \\ \\  \\       
+  \\ \\  \\ \\  \\____  
+   \\ \\__\\ \\_______\\
+    \\|__|\\|_______|`}
+  </pre>
+);
+
 export const LogoIcon = (props: React.ComponentProps<"svg">) => (
   <svg
     fill="currentColor"
@@ -16,8 +28,9 @@ export const LogoIcon = (props: React.ComponentProps<"svg">) => (
 );
 
 export const Logo = ({ className, ...props }: React.ComponentProps<"div">) => (
-  <div className={cn("flex items-center gap-2", className)} {...props}>
-    <LogoIcon className="size-6 text-primary" />
-    <span className="font-bold tracking-tight text-lg">Impact Circle</span>
+  <div className={cn("flex items-center gap-3", className)} {...props}>
+    <LogoAscii className="hidden sm:block" />
+    <LogoIcon className="size-6 text-primary sm:hidden" />
+    <span className="font-black italic uppercase tracking-tighter text-xl">Impact Circle</span>
   </div>
 );
