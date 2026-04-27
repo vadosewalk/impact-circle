@@ -9,11 +9,8 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-[functions]
-  directory = "apps/backend/src/functions"
-  node_bundler = "esbuild"
-
 [[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/index/api/:splat"
+  to = "https://impact-circle-api.gaurav2361.workers.dev/api/:splat"
   status = 200
+  force = true
