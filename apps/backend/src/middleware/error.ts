@@ -12,9 +12,11 @@ export const errorHandler = (err: Error, c: Context) => {
   }
 
   // Handle generic errors
+  const isProduction = (typeof process !== "undefined" ? process.env?.NODE_ENV : c.env?.NODE_ENV) === "production";
+  
   return errorResponse(
     c,
-    process.env.NODE_ENV === "production" ? "An internal server error occurred" : err.message,
+    isProduction ? "An internal server error occurred" : err.message,
     undefined,
     500,
   );
