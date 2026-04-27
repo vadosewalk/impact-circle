@@ -1,18 +1,9 @@
 [build]
   command = "pnpm build"
-  publish = "apps/web/.next"
 
 [build.environment]
   NODE_VERSION = "22"
   PNPM_FLAGS = "--shamefully-hoist"
-
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
-
-[functions]
-  directory = "apps/backend/src/functions"
-  node_bundler = "esbuild"
-  included_files = ["apps/backend/src/**"]
 
 [[redirects]]
   from = "/api/*"
