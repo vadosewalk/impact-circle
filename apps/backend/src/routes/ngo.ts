@@ -1,21 +1,24 @@
 import { Hono } from "hono";
-import { db, ngo, user } from "@impact/db";
+import { ngo, user } from "@impact/db";
 import { eq } from "drizzle-orm";
 import { requireAuth } from "../middleware/auth";
-import { auth } from "../lib/auth";
 import { zValidator } from "@hono/zod-validator";
 import { ngoOnboardSchema } from "../lib/schemas";
 import { successResponse, errorResponse } from "../lib/response";
 
 const ngoRoutes = new Hono<{
   Variables: {
-    user: typeof auth.$Infer.Session.user;
-    session: typeof auth.$Infer.Session.session;
+    user: any;
+    session: any;
+    db: any;
+    auth: any;
   };
 }>();
 
 ngoRoutes.post("/onboard", requireAuth, zValidator("json", ngoOnboardSchema), async (c) => {
   const currentUser = c.get("user");
+  const db = c.get("db" as any);
+  const auth = c.get("auth" as any);
   const body = c.req.valid("json");
 
   const existingNgo = await db.query.ngo.findFirst({
@@ -70,6 +73,7 @@ ngoRoutes.post("/onboard", requireAuth, zValidator("json", ngoOnboardSchema), as
 
 ngoRoutes.get("/me", requireAuth, async (c) => {
   const currentUser = c.get("user");
+  const db = c.get("db" as any);
 
   const ngoRecord = await db.query.ngo.findFirst({
     where: eq(ngo.userId, currentUser.id),

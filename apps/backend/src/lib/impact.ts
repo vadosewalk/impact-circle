@@ -1,4 +1,4 @@
-import { db, user } from "@impact/db";
+import { user } from "@impact/db";
 import { eq, sql } from "drizzle-orm";
 
 export const TRUST_POINTS = {
@@ -11,7 +11,7 @@ export const TRUST_POINTS = {
   COMMUNITY_FLAG: -30,
 };
 
-export const updateTrustScore = async (userId: string, points: number) => {
+export const updateTrustScore = async (db: any, userId: string, points: number) => {
   return await db
     .update(user)
     .set({
@@ -20,7 +20,7 @@ export const updateTrustScore = async (userId: string, points: number) => {
     .where(eq(user.id, userId));
 };
 
-export const checkStrikes = async (userId: string) => {
+export const checkStrikes = async (db: any, userId: string) => {
   const u = await db.query.user.findFirst({
     where: eq(user.id, userId),
   });
