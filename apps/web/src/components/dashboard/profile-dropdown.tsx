@@ -26,8 +26,7 @@ export function ProfileDropdown() {
       await signOut({
         fetchOptions: {
           onSuccess: () => {
-            router.push("/sign-in");
-            router.refresh();
+            window.location.href = "/sign-in";
           },
         },
       });

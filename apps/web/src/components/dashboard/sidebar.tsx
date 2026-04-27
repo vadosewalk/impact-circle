@@ -1,14 +1,14 @@
 "use client";
 
-import { useSession } from "@/lib/auth-client";
 import { Avatar, AvatarFallback, AvatarImage } from "@impact/ui/components/avatar";
 import { cn } from "@impact/ui/lib/utils";
 import { Bell, HandHeart, Home, MessageSquare, Settings, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "@/lib/auth-client";
 import { Logo } from "../ui-elements/logo";
-import { LatestProtocolUpdate } from "./protocol-update";
 import { ProfileDropdown } from "./profile-dropdown";
+import { LatestProtocolUpdate } from "./protocol-update";
 
 const navItems = [
   { label: "Timeline", href: "/dashboard", icon: Home },
@@ -26,9 +26,8 @@ export function DashboardSidebar() {
   return (
     <div className="flex flex-col h-full bg-background">
       <div className="p-6">
-        <Link href="/" className="flex items-center gap-2">
-          <Logo className="size-8" />
-          <span className="text-xl font-black italic uppercase tracking-tighter">Impact Circle</span>
+        <Link href="/" className="group block">
+          <Logo />
         </Link>
       </div>
 

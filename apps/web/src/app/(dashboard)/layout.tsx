@@ -1,17 +1,45 @@
-import { ReactNode } from "react";
+"use client";
+
+import { ReactNode, useEffect } from "react";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { RightSidebar } from "@/components/dashboard/right-sidebar";
 import { MobileNav } from "@/components/dashboard/mobile-nav";
 import { Separator } from "@impact/ui/components/separator";
+import { useSession } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
 
 interface DashboardLayoutProps {
   children: ReactNode;
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
+  const { data: session, isPending } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isPending && !session) {
+      router.push("/sign-in");
+    }
+  }, [session, isPending, router]);
+
+  if (isPending) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-background">
+        <div className="size-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+        <p className="text-sm font-black italic uppercase tracking-widest text-muted-foreground animate-pulse">
+          Authenticating Identity...
+        </p>
+      </div>
+    );
+  }
+
+  // If no session after loading, don't render children to prevent flicker
+  if (!session) return null;
+
   return (
     <div className="min-h-screen bg-muted/20">
       <div className="max-w-[1440px] mx-auto grid grid-cols-1 lg:grid-cols-[240px_1fr] xl:grid-cols-[240px_1fr_300px]">
+        {/* Left Sidebar - Navigation */}
         <aside className="hidden lg:block sticky top-0 h-screen border-r bg-background overflow-y-auto font-medium italic">
           <DashboardSidebar />
         </aside>

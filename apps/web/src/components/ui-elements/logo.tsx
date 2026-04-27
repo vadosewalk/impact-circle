@@ -1,13 +1,13 @@
-import type React from "react";
 import { cn } from "@impact/ui/lib/utils";
+import type React from "react";
 
 export const LogoAscii = ({ className }: { className?: string }) => (
   <pre className={cn("font-mono text-[6px] leading-[1] text-primary select-none", className)}>
-    {`___  ________     
-|\\  \\|\\   ____\\    
-\\ \\  \\ \\  \\___|    
- \\ \\  \\ \\  \\       
-  \\ \\  \\ \\  \\____  
+    {`___  ________
+|\\  \\|\\   ____\\
+\\ \\  \\ \\  \\___|
+ \\ \\  \\ \\  \\
+  \\ \\  \\ \\  \\____
    \\ \\__\\ \\_______\\
     \\|__|\\|_______|`}
   </pre>
@@ -31,6 +31,8 @@ export const Logo = ({ className, ...props }: React.ComponentProps<"div">) => (
   <div className={cn("flex items-center gap-3", className)} {...props}>
     <LogoAscii className="hidden sm:block" />
     <LogoIcon className="size-6 text-primary sm:hidden" />
-    <span className="font-black italic uppercase tracking-tighter text-xl">Impact Circle</span>
+    <span className="font-black italic uppercase tracking-tighter text-lg leading-none">
+      Impact Circle
+    </span>
   </div>
 );

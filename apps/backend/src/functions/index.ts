@@ -49,12 +49,9 @@ app.route("/api/messages", messageRoutes);
 app.route("/api/accountability", accountabilityRoutes);
 app.route("/api/members", memberRoutes);
 
-// Root Route
+// Root Route - Redirect to Frontend
 app.get("/", (c) => {
-  return c.json({
-    message: "Impact Circle API is running on Netlify!",
-    status: "ok",
-  });
+  return c.redirect(process.env.FRONTEND_URL || "http://localhost:3000");
 });
 
 // Health Check
