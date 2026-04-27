@@ -3,7 +3,6 @@ import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { RightSidebar } from "@/components/dashboard/right-sidebar";
 import { MobileNav } from "@/components/dashboard/mobile-nav";
 import { Separator } from "@impact/ui/components/separator";
-import { CommandCenter } from "@/components/layout/command-center";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -29,8 +28,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <RightSidebar />
         </aside>
       </div>
-
-      <CommandCenter />
 
       {/* Mobile Navigation Bar */}
       <MobileNav />
