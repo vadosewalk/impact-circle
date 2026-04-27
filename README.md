@@ -77,6 +77,7 @@ import { Button } from "@impact/ui/components/button";
 // Pattern: Explicit Rendering
 <Button variant="outline" render={<a href="/settings">Configure Terminal</a>} />;
 ```
+
 ## 🌐 Deployment
 
 The project is configured for **Netlify Monorepo** deployment.
