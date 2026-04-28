@@ -1,5 +1,6 @@
 import { cn } from "@impact/ui/lib/utils";
 import React from "react";
+import Link from "next/link";
 import { Portal, PortalBackdrop } from "@impact/ui/components/ui/portal";
 import { Button } from "@impact/ui/components/button";
 import { navLinks } from "@/components/header";
@@ -37,14 +38,18 @@ export function MobileNav() {
 					>
 						<div className="grid gap-y-2">
 							{navLinks.map((link) => (
-								<Button className="justify-start" key={link.label} variant="ghost" render={<a href={link.href} />} nativeButton={false}>{link.label}</Button>
+								<Button className="justify-start" key={link.label} variant="ghost" asChild>
+									<a href={link.href}>{link.label}</a>
+								</Button>
 							))}
 						</div>
 						<div className="mt-12 flex flex-col gap-2">
-							<Button className="w-full" variant="outline">
-								Sign In
+							<Button className="w-full" variant="outline" asChild>
+								<Link href="/sign-in">Sign In</Link>
 							</Button>
-							<Button className="w-full">Get Started</Button>
+							<Button className="w-full" asChild>
+								<Link href="/sign-up">Get Started</Link>
+							</Button>
 						</div>
 					</div>
 				</Portal>

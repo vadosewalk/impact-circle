@@ -20,6 +20,7 @@ RUN npm i -g pnpm && pnpm install --frozen-lockfile
 
 # Stage 3: Build the Next.js app
 FROM alpine AS sourcer
+RUN npm i -g pnpm turbo
 WORKDIR /app
 COPY --from=installer /app/ .
 COPY --from=builder /app/out/full/ .
@@ -28,7 +29,7 @@ COPY --from=builder /app/out/full/ .
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
-RUN npx turbo run build --filter=web
+RUN turbo run build --filter=web
 
 # Stage 4: Production Runner
 FROM alpine AS runner

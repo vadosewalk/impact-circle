@@ -1,5 +1,6 @@
 "use client";
 import { cn } from "@impact/ui/lib/utils";
+import Link from "next/link";
 import { Logo } from "@/components/ui-elements/logo";
 import { useScroll } from "@/hooks/use-scroll";
 import { Button } from "@impact/ui/components/button";
@@ -50,13 +51,17 @@ export function Header() {
 				<div className="hidden items-center gap-2 md:flex">
 					<div>
 						{navLinks.map((link) => (
-							<Button key={link.label} size="sm" variant="ghost" render={<a href={link.href} />} nativeButton={false}>{link.label}</Button>
+							<Button key={link.label} size="sm" variant="ghost" asChild>
+								<a href={link.href}>{link.label}</a>
+							</Button>
 						))}
 					</div>
-					<Button size="sm" variant="outline">
-						Sign In
+					<Button size="sm" variant="outline" asChild>
+						<Link href="/sign-in">Sign In</Link>
 					</Button>
-					<Button size="sm">Get Started</Button>
+					<Button size="sm" asChild>
+						<Link href="/sign-up">Get Started</Link>
+					</Button>
 				</div>
 				<MobileNav />
 			</nav>

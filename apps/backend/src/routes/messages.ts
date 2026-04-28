@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { messages } from "@impact/db";
-import { eq, or } from "drizzle-orm";
+import { messages, user } from "@impact/db";
+import { eq, or, and } from "drizzle-orm";
 import { requireAuth } from "../middleware/auth";
 import { zValidator } from "@hono/zod-validator";
 import { sendMessageSchema } from "../lib/schemas";
@@ -13,6 +13,7 @@ const messageRoutes = new Hono<{
 
 messageRoutes.get("/", requireAuth, async (c) => {
   const currentUser = c.get("user");
+  if (!currentUser) return c.json({ success: false, message: "Unauthorized" }, 401);
   const db = c.get("db");
 
   // Fetch unique contacts the user has messaged or received messages from
@@ -74,6 +75,7 @@ messageRoutes.get("/", requireAuth, async (c) => {
 
 messageRoutes.get("/:contactId", requireAuth, async (c) => {
   const currentUser = c.get("user");
+  if (!currentUser) return c.json({ success: false, message: "Unauthorized" }, 401);
   const db = c.get("db");
   const contactId = c.req.param("contactId");
 
@@ -91,6 +93,7 @@ messageRoutes.get("/:contactId", requireAuth, async (c) => {
 
 messageRoutes.post("/send", requireAuth, zValidator("json", sendMessageSchema), async (c) => {
   const currentUser = c.get("user");
+  if (!currentUser) return c.json({ success: false, message: "Unauthorized" }, 401);
   const db = c.get("db");
   const { receiverId, content } = c.req.valid("json");
 

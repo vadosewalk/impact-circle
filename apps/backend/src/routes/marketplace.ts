@@ -129,6 +129,7 @@ marketplaceRoutes.get("/tenders/:id", async (c) => {
 
 marketplaceRoutes.post("/tenders", requireAuth, zValidator("json", tenderSchema), async (c) => {
   const currentUser = c.get("user");
+  if (!currentUser) return errorResponse(c, "Unauthorized", undefined, 401);
   const db = c.get("db");
   const body = c.req.valid("json");
   const newTenderId = crypto.randomUUID();
@@ -158,6 +159,7 @@ marketplaceRoutes.post("/tenders", requireAuth, zValidator("json", tenderSchema)
 marketplaceRoutes.post("/tenders/:id/pledge", requireAuth, zValidator("json", pledgeSchema), async (c) => {
   const tenderId = c.req.param("id");
   const currentUser = c.get("user");
+  if (!currentUser) return errorResponse(c, "Unauthorized", undefined, 401);
   const db = c.get("db");
   const { amount, volunteers } = c.req.valid("json");
 
@@ -193,6 +195,7 @@ marketplaceRoutes.post("/tenders/:id/pledge", requireAuth, zValidator("json", pl
 marketplaceRoutes.post("/tenders/:id/claim", requireAuth, async (c) => {
   const tenderId = c.req.param("id");
   const currentUser = c.get("user");
+  if (!currentUser) return errorResponse(c, "Unauthorized", undefined, 401);
   const db = c.get("db");
 
   const tenderRecord = await db.query.tenders.findFirst({
@@ -217,6 +220,7 @@ marketplaceRoutes.post("/tenders/:id/claim", requireAuth, async (c) => {
 marketplaceRoutes.post("/tenders/:id/fulfill", requireAuth, async (c) => {
   const tenderId = c.req.param("id");
   const currentUser = c.get("user");
+  if (!currentUser) return errorResponse(c, "Unauthorized", undefined, 401);
   const db = c.get("db");
 
   const tenderRecord = await db.query.tenders.findFirst({
@@ -252,6 +256,7 @@ marketplaceRoutes.post("/tenders/:id/fulfill", requireAuth, async (c) => {
 marketplaceRoutes.post("/tenders/:id/gratitude", requireAuth, zValidator("json", gratitudeSchema), async (c) => {
   const tenderId = c.req.param("id");
   const currentUser = c.get("user");
+  if (!currentUser) return errorResponse(c, "Unauthorized", undefined, 401);
   const db = c.get("db");
   const { content } = c.req.valid("json");
 
@@ -342,6 +347,7 @@ marketplaceRoutes.get(
 
 marketplaceRoutes.post("/drives", requireAuth, requireRole("ngo"), zValidator("json", driveSchema), async (c) => {
   const currentUser = c.get("user");
+  if (!currentUser) return errorResponse(c, "Unauthorized", undefined, 401);
   const db = c.get("db");
   const body = c.req.valid("json");
   const ngoRecord = await db.query.ngo.findFirst({
@@ -382,6 +388,7 @@ marketplaceRoutes.post(
   async (c) => {
     const driveId = c.req.param("id");
     const currentUser = c.get("user");
+    if (!currentUser) return errorResponse(c, "Unauthorized", undefined, 401);
     const db = c.get("db");
     const { content, images } = c.req.valid("json");
 
@@ -423,6 +430,7 @@ marketplaceRoutes.post(
   zValidator("json", categoryRequestSchema),
   async (c) => {
     const currentUser = c.get("user");
+    if (!currentUser) return errorResponse(c, "Unauthorized", undefined, 401);
     const db = c.get("db");
     const { name, description } = c.req.valid("json");
 
@@ -497,6 +505,7 @@ marketplaceRoutes.post("/tenders/:id/comment", requireAuth, zValidator("json", c
   const db = c.get("db");
   const tenderId = c.req.param("id");
   const currentUser = c.get("user");
+  if (!currentUser) return errorResponse(c, "Unauthorized", undefined, 401);
   const { content } = c.req.valid("json");
   await db.insert(comments).values({
     id: crypto.randomUUID(),
