@@ -21,7 +21,11 @@ interface Notification {
   createdAt: string;
 }
 
-const NOTIFICATION_ICONS: Record<string, React.ElementType> = {
+import type { LucideProps } from "lucide-react";
+
+type IconComponent = React.ComponentType<LucideProps>;
+
+const NOTIFICATION_ICONS: Record<string, IconComponent> = {
   welcome: Gift,
   new_comment: MessageSquare,
   tender_claimed: CheckCheck,
@@ -105,7 +109,7 @@ export default function NotificationsPage() {
           ) : notifications.length > 0 ? (
             <div className="divide-y">
               {notifications.map((notif) => {
-                const Icon = NOTIFICATION_ICONS[notif.type] || NOTIFICATION_ICONS.default;
+                const Icon = (NOTIFICATION_ICONS[notif.type] ?? NOTIFICATION_ICONS.default) as typeof Info;
                 return (
                   <div
                     key={notif.id}

@@ -104,7 +104,7 @@ app.get("/api/me", async (c) => {
 serve(
   {
     fetch: app.fetch,
-    port: 8080,
+    port: Number(process.env.PORT) || 8080,
     hostname: "0.0.0.0",
   },
   (info: { address: string; port: number }) => {

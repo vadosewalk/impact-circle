@@ -38,18 +38,18 @@ export function MobileNav() {
 					>
 						<div className="grid gap-y-2">
 							{navLinks.map((link) => (
-								<Button className="justify-start" key={link.label} variant="ghost" asChild>
-									<a href={link.href}>{link.label}</a>
-								</Button>
+								<a key={link.label} href={link.href} className="inline-flex items-center justify-start rounded-md px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors">
+									{link.label}
+								</a>
 							))}
 						</div>
 						<div className="mt-12 flex flex-col gap-2">
-							<Button className="w-full" variant="outline" asChild>
-								<Link href="/sign-in">Sign In</Link>
-							</Button>
-							<Button className="w-full" asChild>
-								<Link href="/sign-up">Get Started</Link>
-							</Button>
+							<Link href="/sign-in">
+								<Button className="w-full" variant="outline">Sign In</Button>
+							</Link>
+							<Link href="/sign-up">
+								<Button className="w-full">Get Started</Button>
+							</Link>
 						</div>
 					</div>
 				</Portal>

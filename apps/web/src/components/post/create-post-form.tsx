@@ -131,7 +131,7 @@ export function CreatePostForm({ categories }: CreatePostFormProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Field>
               <FieldLabel htmlFor="category">Category</FieldLabel>
-              <Select value={categoryId} onValueChange={setCategoryId}>
+              <Select value={categoryId} onValueChange={(v) => setCategoryId(v ?? "")}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
@@ -147,7 +147,7 @@ export function CreatePostForm({ categories }: CreatePostFormProps) {
             {postType === "tender" ? (
               <Field>
                 <FieldLabel htmlFor="urgency">Urgency Level</FieldLabel>
-                <Select value={urgency} onValueChange={setUrgency}>
+                <Select value={urgency} onValueChange={(v) => setUrgency(v ?? "normal")}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

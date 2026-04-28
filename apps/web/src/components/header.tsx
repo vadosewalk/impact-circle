@@ -51,17 +51,17 @@ export function Header() {
 				<div className="hidden items-center gap-2 md:flex">
 					<div>
 						{navLinks.map((link) => (
-							<Button key={link.label} size="sm" variant="ghost" asChild>
-								<a href={link.href}>{link.label}</a>
-							</Button>
+							<a key={link.label} href={link.href} className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors">
+								{link.label}
+							</a>
 						))}
 					</div>
-					<Button size="sm" variant="outline" asChild>
-						<Link href="/sign-in">Sign In</Link>
-					</Button>
-					<Button size="sm" asChild>
-						<Link href="/sign-up">Get Started</Link>
-					</Button>
+					<Link href="/sign-in">
+						<Button size="sm" variant="outline">Sign In</Button>
+					</Link>
+					<Link href="/sign-up">
+						<Button size="sm">Get Started</Button>
+					</Link>
 				</div>
 				<MobileNav />
 			</nav>
