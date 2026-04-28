@@ -501,3 +501,29 @@ export const driveUpdatesRelations = relations(driveUpdates, ({ one }) => ({
     references: [user.id],
   }),
 }));
+
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id), // The recipient
+    type: text("type").notNull(), // e.g., 'welcome', 'new_comment', 'tender_claimed'
+    content: text("content").notNull(),
+    link: text("link"), // Optional URL for the notification to link to
+    isRead: boolean("is_read").default(false).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("notification_user_id_idx").on(table.userId),
+    isReadIdx: index("notification_is_read_idx").on(table.isRead),
+  }),
+);
+
+export const notificationRelations = relations(notifications, ({ one }) => ({
+  user: one(user, {
+    fields: [notifications.userId],
+    references: [user.id],
+  }),
+}));

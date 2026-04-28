@@ -29,6 +29,13 @@
       "when": 1776841650777,
       "tag": "0003_slow_firebrand",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1777378798997,
+      "tag": "0004_omniscient_puppet_master",
+      "breakpoints": true
     }
   ]
 }
