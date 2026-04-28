@@ -16,14 +16,10 @@ import {
 } from "../lib/schemas";
 import { successResponse, errorResponse } from "../lib/response";
 import { TRUST_POINTS } from "../lib/impact";
+import type { Variables } from "../lib/types";
 
 const marketplaceRoutes = new Hono<{
-  Variables: {
-    user: any;
-    session: any;
-    db: any;
-    auth: any;
-  };
+  Variables: Variables;
 }>();
 
 // --- Categories ---

@@ -1,7 +1,22 @@
 import { createMiddleware } from "hono/factory";
 import { auth as authFallback } from "../lib/auth";
+import type { NeonHttpDatabase } from "drizzle-orm/neon-http";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import type * as schema from "@impact/db";
+import type { getAuth } from "../lib/auth";
 
-export const sessionMiddleware = createMiddleware(async (c, next) => {
+type AuthType = ReturnType<typeof getAuth>;
+
+type Env = {
+  Variables: {
+    db: NeonHttpDatabase<typeof schema> | PostgresJsDatabase<typeof schema>;
+    auth: AuthType;
+    user: AuthType["$Infer"]["Session"]["user"] | undefined;
+    session: AuthType["$Infer"]["Session"]["session"] | undefined;
+  };
+};
+
+export const sessionMiddleware = createMiddleware<Env>(async (c, next) => {
   // Optimization: Skip session fetching for known public GET routes
   const publicPaths = [
     "/api/marketplace/tenders",
@@ -17,7 +32,7 @@ export const sessionMiddleware = createMiddleware(async (c, next) => {
     return await next();
   }
 
-  const auth = c.get("auth" as any) || authFallback;
+  const auth = c.get("auth") || authFallback;
   if (!auth) {
     console.error("[AUTH MIDDLEWARE]: Auth object not found in context or fallback");
     return await next();
@@ -35,8 +50,8 @@ export const sessionMiddleware = createMiddleware(async (c, next) => {
   await next();
 });
 
-export const requireAuth = createMiddleware(async (c, next) => {
-  const auth = c.get("auth" as any) || authFallback;
+export const requireAuth = createMiddleware<Env>(async (c, next) => {
+  const auth = c.get("auth") || authFallback;
   if (!auth) {
     return c.json({ message: "Authentication system unavailable" }, 500);
   }
@@ -51,7 +66,7 @@ export const requireAuth = createMiddleware(async (c, next) => {
 });
 
 export const requireRole = (role: "admin" | "user" | "ngo") => {
-  return createMiddleware(async (c, next) => {
+  return createMiddleware<Env>(async (c, next) => {
     const user = c.get("user");
     if (!user || user.role !== role) {
       return c.json({ message: "Forbidden" }, 403);

@@ -11,14 +11,10 @@ import {
 } from "../lib/schemas";
 import { successResponse, errorResponse } from "../lib/response";
 import { TRUST_POINTS } from "../lib/impact";
+import type { Variables } from "../lib/types";
 
 const adminRoutes = new Hono<{
-  Variables: {
-    user: any;
-    session: any;
-    db: any;
-    auth: any;
-  };
+  Variables: Variables;
 }>();
 
 // --- NGO Onboarding & Meet Scheduling ---

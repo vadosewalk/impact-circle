@@ -10,6 +10,9 @@ import { messageRoutes } from "./routes/messages";
 import { accountabilityRoutes } from "./routes/accountability";
 import { memberRoutes } from "./routes/members";
 import { errorHandler, notFoundHandler } from "./middleware/error";
+import { NeonHttpDatabase } from "drizzle-orm/neon-http";
+import { PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import * as schema from "@impact/db";
 
 type Bindings = {
   DATABASE_URL: string;
@@ -18,9 +21,20 @@ type Bindings = {
   GOOGLE_CLIENT_SECRET: string;
   FRONTEND_URL: string;
   BETTER_AUTH_URL: string;
+  RESEND_API_KEY: string;
+  EMAIL_FROM: string;
 };
 
-const app = new Hono<{ Bindings: Bindings }>();
+type AuthType = ReturnType<typeof getAuth>;
+
+type Variables = {
+  db: NeonHttpDatabase<typeof schema> | PostgresJsDatabase<typeof schema>;
+  auth: AuthType;
+  user: AuthType["$Infer"]["Session"]["user"] | undefined;
+  session: AuthType["$Infer"]["Session"]["session"] | undefined;
+};
+
+const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 // Global Error Handlers
 app.onError(errorHandler);
@@ -47,8 +61,8 @@ app.use("*", async (c, next) => {
     });
   }
 
-  c.set("db" as any, cachedDb);
-  c.set("auth" as any, cachedAuth);
+  c.set("db", cachedDb);
+  c.set("auth", cachedAuth);
 
   await next();
 });
@@ -68,7 +82,7 @@ app.use("*", sessionMiddleware);
 
 // Better Auth Route Handler
 app.on(["POST", "GET"], "/api/auth/*", (c) => {
-  const auth = c.get("auth" as any);
+  const auth = c.get("auth");
   return auth.handler(c.req.raw);
 });
 

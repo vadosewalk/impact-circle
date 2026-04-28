@@ -1,18 +1,18 @@
 import "dotenv/config";
 import { serve } from "@hono/node-server";
+import { db } from "@impact/db";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { db } from "@impact/db";
 import { getAuth } from "./lib/auth";
 import { sessionMiddleware } from "./middleware/auth";
-import { ngoRoutes } from "./routes/ngo";
+import { errorHandler, notFoundHandler } from "./middleware/error";
+import { accountabilityRoutes } from "./routes/accountability";
 import { adminRoutes } from "./routes/admin";
 import { marketplaceRoutes } from "./routes/marketplace";
-import { messageRoutes } from "./routes/messages";
-import { accountabilityRoutes } from "./routes/accountability";
 import { memberRoutes } from "./routes/members";
+import { messageRoutes } from "./routes/messages";
+import { ngoRoutes } from "./routes/ngo";
 import { notificationRoutes } from "./routes/notifications";
-import { errorHandler, notFoundHandler } from "./middleware/error";
 
 const auth = getAuth(db);
 
@@ -104,9 +104,9 @@ app.get("/api/me", async (c) => {
 serve(
   {
     fetch: app.fetch,
-    port: 8787,
+    port: 8080,
   },
-  (info) => {
+  (info: { address: string; port: number }) => {
     console.log(`Server is running on http://localhost:${info.port}`);
   },
 );

@@ -5,14 +5,10 @@ import { requireAuth } from "../middleware/auth";
 import { zValidator } from "@hono/zod-validator";
 import { sendMessageSchema } from "../lib/schemas";
 import { successResponse } from "../lib/response";
+import type { Variables } from "../lib/types";
 
 const messageRoutes = new Hono<{
-  Variables: {
-    user: any;
-    session: any;
-    db: any;
-    auth: any;
-  };
+  Variables: Variables;
 }>();
 
 messageRoutes.get("/", requireAuth, async (c) => {

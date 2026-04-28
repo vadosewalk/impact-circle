@@ -2,7 +2,6 @@ import * as schema from "@impact/db";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { organization } from "better-auth/plugins";
-import { sendEmail } from "./email";
 
 /**
  * Better Auth initialization factory.
@@ -45,7 +44,7 @@ export function getAuth(
     // CRITICAL FIX: BaseURL must always be the public-facing FRONTEND URL for redirects to work correctly.
     baseURL: FRONTEND_URL,
     secret: BETTER_AUTH_SECRET,
-    
+
     // Simplified Email & Password setup
     emailAndPassword: {
       enabled: true,
@@ -56,7 +55,7 @@ export function getAuth(
         console.log(`In a real app, you would send an email with this URL: ${url}`);
         // In the future, you can add your email sending logic here.
         await Promise.resolve();
-      }
+      },
     },
 
     // Google Provider
@@ -69,12 +68,8 @@ export function getAuth(
 
     // Whitelist frontend origins for CSRF protection
     trustedOrigins: [FRONTEND_URL, "https://impact-circle-web.netlify.app"],
-    
-    advanced: {
-      // This tells Better Auth to use the runtime env vars passed into getAuth,
-      // which is crucial for serverless environments.
-      useRuntimeConfig: true,
-    },
+
+    advanced: {},
 
     plugins: [
       organization({
