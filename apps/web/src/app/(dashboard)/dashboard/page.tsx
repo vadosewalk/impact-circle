@@ -34,15 +34,29 @@ export default function DashboardPage() {
   const [tenders, setTenders] = useState<MarketplaceTender[]>([]);
   const [drives, setDrives] = useState<MarketplaceDrive[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (pageNum: number) => {
     try {
+      setIsLoading(true);
       const [tendersRes, drivesRes] = await Promise.all([
-        api.get<{ data: MarketplaceTender[] }>("/api/marketplace/tenders"),
-        api.get<{ data: MarketplaceDrive[] }>("/api/marketplace/drives"),
+        api.get<{ data: MarketplaceTender[] }>(`/api/marketplace/tenders?page=${pageNum}&limit=10`),
+        api.get<{ data: MarketplaceDrive[] }>(`/api/marketplace/drives?page=${pageNum}&limit=10`),
       ]);
-      setTenders(tendersRes.data || []);
-      setDrives(drivesRes.data || []);
+
+      const newTenders = tendersRes.data || [];
+      const newDrives = drivesRes.data || [];
+
+      if (pageNum === 1) {
+        setTenders(newTenders);
+        setDrives(newDrives);
+      } else {
+        setTenders((prev) => [...prev, ...newTenders]);
+        setDrives((prev) => [...prev, ...newDrives]);
+      }
+
+      setHasMore(newTenders.length === 10 || newDrives.length === 10);
     } catch (err) {
       console.error("Failed to fetch dashboard data", err);
     } finally {
@@ -51,8 +65,14 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    fetchData();
+    fetchData(1);
   }, [fetchData]);
+
+  const loadMore = () => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchData(nextPage);
+  };
 
   const unifiedFeed = [
     ...tenders.map((t) => ({ ...t, feedType: "tender" as const })),
@@ -92,28 +112,69 @@ export default function DashboardPage() {
 
         <div className="flex-1">
           <TabsContent value="all" className="space-y-4 mt-0">
-            {isLoading ? (
-              Array.from({ length: 3 }).map((_, i) => (
-                <div key={`skeleton-${i}`} className="h-32 bg-muted/20 animate-pulse rounded-md border" />
-              ))
-            ) : unifiedFeed.length > 0 ? (
-              unifiedFeed.map((post) => <FeedPostCard key={post.id} type={post.feedType} data={post} />)
-            ) : (
-              <EmptyFeed />
+            {unifiedFeed.map((post) => (
+              <FeedPostCard key={`${post.feedType}-${post.id}`} type={post.feedType} data={post} />
+            ))}
+            {isLoading && (
+              <div className="space-y-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div
+                    key={`skeleton-${i}`}
+                    className="h-48 bg-muted/20 animate-pulse rounded-sm border flex flex-col p-4 gap-4"
+                  >
+                    <div className="flex gap-2 items-center">
+                      <div className="size-8 bg-muted rounded-full" />
+                      <div className="h-4 w-32 bg-muted rounded" />
+                    </div>
+                    <div className="h-6 w-3/4 bg-muted rounded" />
+                    <div className="h-16 w-full bg-muted rounded" />
+                  </div>
+                ))}
+              </div>
             )}
+            {!isLoading && hasMore && (
+              <div className="pt-4">
+                <Button
+                  onClick={loadMore}
+                  variant="outline"
+                  className="w-full font-black text-[10px] uppercase tracking-[0.2em] py-8 border-dashed hover:bg-primary/5 hover:border-primary/50 transition-all"
+                >
+                  Fetch More Activity ({unifiedFeed.length} items loaded)
+                </Button>
+              </div>
+            )}
+            {unifiedFeed.length === 0 && !isLoading && <EmptyFeed />}
           </TabsContent>
 
           <TabsContent value="tenders" className="space-y-4 mt-0">
             {tenders.map((post) => (
-              <FeedPostCard key={post.id} type="tender" data={post} />
+              <FeedPostCard key={`tender-${post.id}`} type="tender" data={post} />
             ))}
+            {!isLoading && hasMore && (
+              <Button
+                onClick={loadMore}
+                variant="outline"
+                className="w-full font-bold text-xs uppercase tracking-widest py-6"
+              >
+                Load More Needs
+              </Button>
+            )}
             {tenders.length === 0 && !isLoading && <EmptyFeed />}
           </TabsContent>
 
           <TabsContent value="drives" className="space-y-4 mt-0">
             {drives.map((post) => (
-              <FeedPostCard key={post.id} type="drive" data={post} />
+              <FeedPostCard key={`drive-${post.id}`} type="drive" data={post} />
             ))}
+            {!isLoading && hasMore && (
+              <Button
+                onClick={loadMore}
+                variant="outline"
+                className="w-full font-bold text-xs uppercase tracking-widest py-6"
+              >
+                Load More Drives
+              </Button>
+            )}
             {drives.length === 0 && !isLoading && <EmptyFeed />}
           </TabsContent>
         </div>
