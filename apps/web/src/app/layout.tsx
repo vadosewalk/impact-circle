@@ -21,6 +21,15 @@ const fontMono = Fira_Code({
 });
 
 import { TooltipProvider } from "@impact/ui/components/tooltip";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Impact Circle",
+  description: "A trust-based platform for community impact.",
+  icons: {
+    icon: "/impact-circle.png",
+  },
+};
 
 export default function RootLayout({
   children,

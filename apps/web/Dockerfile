@@ -29,7 +29,7 @@ ENV NODE_ENV=production
 
 COPY --from=sourcer /app/apps/web/next.config.mjs .
 COPY --from=sourcer /app/apps/web/package.json .
-COPY --from=sourcer /app/apps/web/public ./public
+COPY --from=sourcer /app/apps/web/public ./apps/web/public
 COPY --from=sourcer /app/apps/web/.next/standalone ./
 COPY --from=sourcer /app/apps/web/.next/static ./apps/web/.next/static
 
