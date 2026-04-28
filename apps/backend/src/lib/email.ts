@@ -6,7 +6,7 @@ const getResend = (apiKey?: string) => {
   if (apiKey) {
     return new Resend(apiKey);
   }
-  
+
   if (!resend && typeof process !== "undefined" && process.env.RESEND_API_KEY) {
     resend = new Resend(process.env.RESEND_API_KEY);
   }

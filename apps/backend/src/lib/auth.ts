@@ -8,15 +8,18 @@ import { sendEmail } from "./email";
  * Better Auth initialization factory.
  * In a serverless/worker environment, we inject the database instance and environment variables.
  */
-export function getAuth(db: any, env?: {
-  BETTER_AUTH_URL?: string;
-  BETTER_AUTH_SECRET?: string;
-  GOOGLE_CLIENT_ID?: string;
-  GOOGLE_CLIENT_SECRET?: string;
-  FRONTEND_URL?: string;
-  RESEND_API_KEY?: string;
-  EMAIL_FROM?: string;
-}) {
+export function getAuth(
+  db: any,
+  env?: {
+    BETTER_AUTH_URL?: string;
+    BETTER_AUTH_SECRET?: string;
+    GOOGLE_CLIENT_ID?: string;
+    GOOGLE_CLIENT_SECRET?: string;
+    FRONTEND_URL?: string;
+    RESEND_API_KEY?: string;
+    EMAIL_FROM?: string;
+  },
+) {
   const pEnv = typeof process !== "undefined" ? process.env : {};
   const BETTER_AUTH_URL = env?.BETTER_AUTH_URL || pEnv.BETTER_AUTH_URL;
   const BETTER_AUTH_SECRET = env?.BETTER_AUTH_SECRET || pEnv.BETTER_AUTH_SECRET;
@@ -52,10 +55,7 @@ export function getAuth(db: any, env?: {
         clientSecret: GOOGLE_CLIENT_SECRET || "",
       },
     },
-    trustedOrigins: [
-      FRONTEND_URL,
-      "https://impact-circle-web.netlify.app"
-    ],
+    trustedOrigins: [FRONTEND_URL, "https://impact-circle-web.netlify.app"],
     advanced: {
       useRuntimeConfig: true,
     },
@@ -64,10 +64,11 @@ export function getAuth(db: any, env?: {
         allowUserToCreateOrganization: true,
         sendInvitationEmail: async (data) => {
           const { email, organization, inviter, invitation } = data;
-          await sendEmail({
-            to: email,
-            subject: `Join ${organization.name} on Impact Circle`,
-            html: `
+          await sendEmail(
+            {
+              to: email,
+              subject: `Join ${organization.name} on Impact Circle`,
+              html: `
               <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
                 <h1 style="color: #7c3aed; margin-bottom: 24px;">Impact Circle</h1>
                 <p style="font-size: 16px; line-height: 1.6; color: #1e1b4b;">
@@ -85,7 +86,10 @@ export function getAuth(db: any, env?: {
                 </p>
               </div>
             `,
-          }, RESEND_API_KEY, EMAIL_FROM);
+            },
+            RESEND_API_KEY,
+            EMAIL_FROM,
+          );
         },
       }),
     ],
