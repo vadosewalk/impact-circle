@@ -1,8 +1,7 @@
 import { Hono } from "hono";
-import { db, user, ngo } from "@impact/db";
+import { user, ngo } from "@impact/db";
 import { eq, sql } from "drizzle-orm";
 import { requireAuth } from "../middleware/auth";
-import type { auth } from "../lib/auth";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { successResponse, errorResponse } from "../lib/response";
@@ -10,8 +9,10 @@ import { TRUST_POINTS, updateTrustScore } from "../lib/impact";
 
 const accountabilityRoutes = new Hono<{
   Variables: {
-    user: typeof auth.$Infer.Session.user;
-    session: typeof auth.$Infer.Session.session;
+    user: any;
+    session: any;
+    db: any;
+    auth: any;
   };
 }>();
 
@@ -22,6 +23,7 @@ const flagSchema = z.object({
 
 accountabilityRoutes.post("/flag", requireAuth, zValidator("json", flagSchema), async (c) => {
   const { targetType, targetId } = c.req.valid("json");
+  const db = c.get("db");
 
   if (targetType === "user") {
     await db
@@ -31,7 +33,7 @@ accountabilityRoutes.post("/flag", requireAuth, zValidator("json", flagSchema), 
       })
       .where(eq(user.id, targetId));
 
-    await updateTrustScore(targetId, TRUST_POINTS.COMMUNITY_FLAG);
+    await updateTrustScore(db, targetId, TRUST_POINTS.COMMUNITY_FLAG);
 
     const updatedUser = await db.query.user.findFirst({
       where: eq(user.id, targetId),
@@ -53,7 +55,7 @@ accountabilityRoutes.post("/flag", requireAuth, zValidator("json", flagSchema), 
       .set({ flags: sql`${ngo.flags} + 1` })
       .where(eq(ngo.id, targetId));
 
-    await updateTrustScore(ngoRecord.userId, TRUST_POINTS.COMMUNITY_FLAG);
+    await updateTrustScore(db, ngoRecord.userId, TRUST_POINTS.COMMUNITY_FLAG);
 
     const updatedNgo = await db.query.ngo.findFirst({
       where: eq(ngo.id, targetId),

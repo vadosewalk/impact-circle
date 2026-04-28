@@ -2,7 +2,8 @@ import "dotenv/config";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { auth } from "./lib/auth";
+import { db } from "@impact/db";
+import { getAuth } from "./lib/auth";
 import { sessionMiddleware } from "./middleware/auth";
 import { ngoRoutes } from "./routes/ngo";
 import { adminRoutes } from "./routes/admin";
@@ -12,9 +13,13 @@ import { accountabilityRoutes } from "./routes/accountability";
 import { memberRoutes } from "./routes/members";
 import { errorHandler, notFoundHandler } from "./middleware/error";
 
+const auth = getAuth(db);
+
 type Variables = {
   user: typeof auth.$Infer.Session.user | undefined;
   session: typeof auth.$Infer.Session.session | undefined;
+  db: typeof db;
+  auth: typeof auth;
 };
 
 const app = new Hono<{ Variables: Variables }>();
@@ -23,11 +28,30 @@ const app = new Hono<{ Variables: Variables }>();
 app.onError(errorHandler);
 app.notFound(notFoundHandler);
 
+// Debug Logging Middleware
+app.use("*", async (c, next) => {
+  console.log(`[${new Date().toISOString()}] ${c.req.method} ${c.req.url}`);
+  await next();
+});
+
+// Inject DB and Auth into context
+app.use("*", async (c, next) => {
+  c.set("db", db);
+  c.set("auth", auth);
+  await next();
+});
+
 // CORS Middleware
 app.use(
   "*",
   cors({
-    origin: [process.env.FRONTEND_URL || "http://localhost:3000"],
+    origin: (origin) => {
+      // Allow all localhost/127.0.0.1 origins in development
+      if (!origin || origin.includes("localhost") || origin.includes("127.0.0.1")) {
+        return origin;
+      }
+      return process.env.FRONTEND_URL || "http://localhost:3000";
+    },
     credentials: true,
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
@@ -39,6 +63,7 @@ app.use("*", sessionMiddleware);
 
 // Better Auth Route Handler
 app.on(["POST", "GET"], "/api/auth/*", (c) => {
+  const auth = c.get("auth");
   return auth.handler(c.req.raw);
 });
 

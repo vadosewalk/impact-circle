@@ -1,19 +1,21 @@
 import { Hono } from "hono";
 import { requireAuth, requireRole } from "../middleware/auth";
-import { auth } from "../lib/auth";
 import { zValidator } from "@hono/zod-validator";
 import { inviteMemberSchema, updateMemberRoleSchema } from "../lib/schemas";
 import { successResponse, errorResponse } from "../lib/response";
 
 const memberRoutes = new Hono<{
   Variables: {
-    user: typeof auth.$Infer.Session.user;
-    session: typeof auth.$Infer.Session.session;
+    user: any;
+    session: any;
+    db: any;
+    auth: any;
   };
 }>();
 
 // List members of the active organization
 memberRoutes.get("/", requireAuth, requireRole("ngo"), async (c) => {
+  const auth = c.get("auth");
   // Find organizations where the user is a member
   const organizations = await auth.api.listOrganizations({
     headers: c.req.raw.headers,
@@ -39,6 +41,7 @@ memberRoutes.get("/", requireAuth, requireRole("ngo"), async (c) => {
 
 // Invite a new member
 memberRoutes.post("/invite", requireAuth, requireRole("ngo"), zValidator("json", inviteMemberSchema), async (c) => {
+  const auth = c.get("auth");
   const { email, role } = c.req.valid("json");
   const organizations = await auth.api.listOrganizations({
     headers: c.req.raw.headers,
@@ -73,6 +76,7 @@ memberRoutes.post(
   requireRole("ngo"),
   zValidator("json", updateMemberRoleSchema),
   async (c) => {
+    const auth = c.get("auth");
     const { memberId, role } = c.req.valid("json");
 
     try {
@@ -93,6 +97,7 @@ memberRoutes.post(
 
 // Remove a member
 memberRoutes.delete("/:id", requireAuth, requireRole("ngo"), async (c) => {
+  const auth = c.get("auth");
   const memberId = c.req.param("id");
 
   try {

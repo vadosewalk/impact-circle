@@ -1,20 +1,8 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import {
-  db,
-  tenders,
-  drives,
-  categories,
-  ngo,
-  user,
-  comments,
-  driveUpdates,
-  beneficiaryUpdates,
-  polls,
-} from "@impact/db";
+import { tenders, drives, categories, ngo, user, comments, driveUpdates, beneficiaryUpdates, polls } from "@impact/db";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middleware/auth";
-import type { auth } from "../lib/auth";
 import { zValidator } from "@hono/zod-validator";
 import {
   tenderSchema,
@@ -27,18 +15,21 @@ import {
   locationQuerySchema,
 } from "../lib/schemas";
 import { successResponse, errorResponse } from "../lib/response";
-import { TRUST_POINTS, updateTrustScore } from "../lib/impact";
+import { TRUST_POINTS } from "../lib/impact";
 
 const marketplaceRoutes = new Hono<{
   Variables: {
-    user: typeof auth.$Infer.Session.user;
-    session: typeof auth.$Infer.Session.session;
+    user: any;
+    session: any;
+    db: any;
+    auth: any;
   };
 }>();
 
 // --- Categories ---
 
 marketplaceRoutes.get("/categories", async (c) => {
+  const db = c.get("db");
   const allCategories = await db
     .select({
       id: categories.id,
@@ -49,75 +40,100 @@ marketplaceRoutes.get("/categories", async (c) => {
     .where(eq(categories.status, "approved"))
     .orderBy(categories.name);
 
+  c.header("Cache-Control", "public, max-age=60");
   return successResponse(c, "Categories fetched successfully", allCategories);
 });
 
 // --- Tenders (Beneficiary Needs) ---
 
-marketplaceRoutes.get("/tenders", zValidator("query", locationQuerySchema), async (c) => {
-  const { lat, lng, radius: rawRadius } = c.req.valid("query");
-  const radius = rawRadius || 50000; // Default 50km in meters for PostGIS geography
+marketplaceRoutes.get(
+  "/tenders",
+  zValidator(
+    "query",
+    locationQuerySchema.extend({
+      page: z.coerce.number().default(1),
+      limit: z.coerce.number().default(10),
+    }),
+  ),
+  async (c) => {
+    const db = c.get("db");
+    const { lat, lng, radius: rawRadius, page, limit } = c.req.valid("query");
+    const radius = rawRadius || 50000;
+    const offset = (page - 1) * limit;
 
-  const conditions = [eq(tenders.status, "open")];
+    const conditions = [eq(tenders.status, "open")];
 
-  if (lat !== undefined && lng !== undefined) {
-    conditions.push(
-      sql`(${tenders.urgency} = 'urgent' OR ST_DWithin(${tenders.location}, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography, ${radius}))`,
-    );
-  }
+    if (lat !== undefined && lng !== undefined) {
+      conditions.push(
+        sql`(${tenders.urgency} = 'urgent' OR ST_DWithin(${tenders.location}, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography, ${radius}))`,
+      );
+    }
 
-  const rows = await db
-    .select({
-      tender: {
-        id: tenders.id,
-        userId: tenders.userId,
-        title: tenders.title,
-        description: tenders.description,
-        categoryId: tenders.categoryId,
-        status: tenders.status,
-        urgency: tenders.urgency,
-        latitude: tenders.latitude,
-        longitude: tenders.longitude,
-        targetAmount: tenders.targetAmount,
-        currentAmount: tenders.currentAmount,
-        targetVolunteers: tenders.targetVolunteers,
-        currentVolunteers: tenders.currentVolunteers,
-        claimedById: tenders.claimedById,
-        createdAt: tenders.createdAt,
-        updatedAt: tenders.updatedAt,
+    const rows = await db
+      .select({
+        tender: tenders,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
+          trustScore: user.trustScore,
+          role: user.role,
+          bio: user.bio,
+        },
+        category: {
+          id: categories.id,
+          name: categories.name,
+          description: categories.description,
+        },
+      })
+      .from(tenders)
+      .innerJoin(user, eq(tenders.userId, user.id))
+      .innerJoin(categories, eq(tenders.categoryId, categories.id))
+      .where(and(...conditions))
+      .orderBy(desc(tenders.urgency), desc(tenders.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    const result = rows.map((row) => ({
+      ...row.tender,
+      user: row.user,
+      category: row.category,
+    }));
+
+    c.header("Cache-Control", "public, max-age=30");
+    return successResponse(c, "Tenders fetched successfully", result);
+  },
+);
+
+marketplaceRoutes.get("/tenders/:id", async (c) => {
+  const db = c.get("db");
+  const id = c.req.param("id");
+
+  const row = await db.query.tenders.findFirst({
+    where: eq(tenders.id, id),
+    with: {
+      user: true,
+      category: true,
+      comments: {
+        with: {
+          user: true,
+        },
+        orderBy: (comments, { desc }) => [desc(comments.createdAt)],
       },
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        image: user.image,
-        trustScore: user.trustScore,
-        role: user.role,
-        bio: user.bio,
-      },
-      category: {
-        id: categories.id,
-        name: categories.name,
-        description: categories.description,
-      },
-    })
-    .from(tenders)
-    .innerJoin(user, eq(tenders.userId, user.id))
-    .innerJoin(categories, eq(tenders.categoryId, categories.id))
-    .where(and(...conditions))
-    .orderBy(desc(tenders.urgency), desc(tenders.createdAt));
+      updates: true,
+    },
+  });
 
-  const result = rows.map((row) => ({
-    ...row.tender,
-    user: row.user,
-    category: row.category,
-  }));
+  if (!row) return errorResponse(c, "Tender not found", undefined, 404);
 
-  return successResponse(c, "Tenders fetched successfully", result);
+  c.header("Cache-Control", "public, max-age=10");
+  return successResponse(c, "Tender fetched successfully", row);
 });
 
 marketplaceRoutes.post("/tenders", requireAuth, zValidator("json", tenderSchema), async (c) => {
   const currentUser = c.get("user");
+  const db = c.get("db");
   const body = c.req.valid("json");
   const newTenderId = crypto.randomUUID();
 
@@ -146,6 +162,7 @@ marketplaceRoutes.post("/tenders", requireAuth, zValidator("json", tenderSchema)
 marketplaceRoutes.post("/tenders/:id/pledge", requireAuth, zValidator("json", pledgeSchema), async (c) => {
   const tenderId = c.req.param("id");
   const currentUser = c.get("user");
+  const db = c.get("db");
   const { amount, volunteers } = c.req.valid("json");
 
   const tenderRecord = await db.query.tenders.findFirst({
@@ -180,6 +197,7 @@ marketplaceRoutes.post("/tenders/:id/pledge", requireAuth, zValidator("json", pl
 marketplaceRoutes.post("/tenders/:id/claim", requireAuth, async (c) => {
   const tenderId = c.req.param("id");
   const currentUser = c.get("user");
+  const db = c.get("db");
 
   const tenderRecord = await db.query.tenders.findFirst({
     where: eq(tenders.id, tenderId),
@@ -203,6 +221,7 @@ marketplaceRoutes.post("/tenders/:id/claim", requireAuth, async (c) => {
 marketplaceRoutes.post("/tenders/:id/fulfill", requireAuth, async (c) => {
   const tenderId = c.req.param("id");
   const currentUser = c.get("user");
+  const db = c.get("db");
 
   const tenderRecord = await db.query.tenders.findFirst({
     where: eq(tenders.id, tenderId),
@@ -237,6 +256,7 @@ marketplaceRoutes.post("/tenders/:id/fulfill", requireAuth, async (c) => {
 marketplaceRoutes.post("/tenders/:id/gratitude", requireAuth, zValidator("json", gratitudeSchema), async (c) => {
   const tenderId = c.req.param("id");
   const currentUser = c.get("user");
+  const db = c.get("db");
   const { content } = c.req.valid("json");
 
   const tenderRecord = await db.query.tenders.findFirst({
@@ -266,81 +286,67 @@ marketplaceRoutes.post("/tenders/:id/gratitude", requireAuth, zValidator("json",
 
 // --- Drives (NGO Initiatives) ---
 
-marketplaceRoutes.get("/drives", zValidator("query", locationQuerySchema), async (c) => {
-  const { lat, lng, radius: rawRadius } = c.req.valid("query");
-  const radius = rawRadius || 50000;
+marketplaceRoutes.get(
+  "/drives",
+  zValidator(
+    "query",
+    locationQuerySchema.extend({
+      page: z.coerce.number().default(1),
+      limit: z.coerce.number().default(10),
+    }),
+  ),
+  async (c) => {
+    const db = c.get("db");
+    const { lat, lng, radius: rawRadius, page, limit } = c.req.valid("query");
+    const radius = rawRadius || 50000;
+    const offset = (page - 1) * limit;
 
-  const conditions = [eq(drives.status, "open")];
+    const conditions = [eq(drives.status, "open")];
 
-  if (lat !== undefined && lng !== undefined) {
-    conditions.push(
-      sql`ST_DWithin(${drives.location}, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography, ${radius})`,
-    );
-  }
+    if (lat !== undefined && lng !== undefined) {
+      conditions.push(
+        sql`ST_DWithin(${drives.location}, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography, ${radius})`,
+      );
+    }
 
-  const rows = await db
-    .select({
-      drive: {
-        id: drives.id,
-        ngoId: drives.ngoId,
-        title: drives.title,
-        description: drives.description,
-        targetFunds: drives.targetFunds,
-        currentFunds: drives.currentFunds,
-        targetVolunteers: drives.targetVolunteers,
-        currentVolunteers: drives.currentVolunteers,
-        status: drives.status,
-        latitude: drives.latitude,
-        longitude: drives.longitude,
-        createdAt: drives.createdAt,
-        updatedAt: drives.updatedAt,
-      },
+    const rows = await db
+      .select({
+        drive: drives,
+        ngo: ngo,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
+          trustScore: user.trustScore,
+          role: user.role,
+          bio: user.bio,
+        },
+      })
+      .from(drives)
+      .innerJoin(ngo, eq(drives.ngoId, ngo.id))
+      .innerJoin(user, eq(ngo.userId, user.id))
+      .where(and(...conditions))
+      .orderBy(desc(user.trustScore))
+      .limit(limit)
+      .offset(offset);
+
+    const sortedDrives = rows.map((row) => ({
+      ...row.drive,
       ngo: {
-        id: ngo.id,
-        userId: ngo.userId,
-        organizationId: ngo.organizationId,
-        name: ngo.name,
-        description: ngo.description,
-        status: ngo.status,
-        geoRadius: ngo.geoRadius,
-        address: ngo.address,
-        registrationNumber: ngo.registrationNumber,
-        flags: ngo.flags,
-        auditMeetLink: ngo.auditMeetLink,
-        auditScheduledAt: ngo.auditScheduledAt,
-        documents: ngo.documents,
-        createdAt: ngo.createdAt,
-        updatedAt: ngo.updatedAt,
+        ...row.ngo,
+        user: row.user,
       },
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        image: user.image,
-        trustScore: user.trustScore,
-        role: user.role,
-        bio: user.bio,
-      },
-    })
-    .from(drives)
-    .innerJoin(ngo, eq(drives.ngoId, ngo.id))
-    .innerJoin(user, eq(ngo.userId, user.id))
-    .where(and(...conditions))
-    .orderBy(desc(user.trustScore));
+    }));
 
-  const sortedDrives = rows.map((row) => ({
-    ...row.drive,
-    ngo: {
-      ...row.ngo,
-      user: row.user,
-    },
-  }));
-
-  return successResponse(c, "Drives fetched and ranked by NGO Trust Score", sortedDrives);
-});
+    c.header("Cache-Control", "public, max-age=30");
+    return successResponse(c, "Drives fetched and ranked by NGO Trust Score", sortedDrives);
+  },
+);
 
 marketplaceRoutes.post("/drives", requireAuth, requireRole("ngo"), zValidator("json", driveSchema), async (c) => {
   const currentUser = c.get("user");
+  const db = c.get("db");
   const body = c.req.valid("json");
   const ngoRecord = await db.query.ngo.findFirst({
     where: and(eq(ngo.userId, currentUser.id), eq(ngo.status, "verified")),
@@ -380,6 +386,7 @@ marketplaceRoutes.post(
   async (c) => {
     const driveId = c.req.param("id");
     const currentUser = c.get("user");
+    const db = c.get("db");
     const { content, images } = c.req.valid("json");
 
     const ngoRecord = await db.query.ngo.findFirst({
@@ -420,6 +427,7 @@ marketplaceRoutes.post(
   zValidator("json", categoryRequestSchema),
   async (c) => {
     const currentUser = c.get("user");
+    const db = c.get("db");
     const { name, description } = c.req.valid("json");
 
     const ngoRecord = await db.query.ngo.findFirst({
@@ -443,6 +451,7 @@ marketplaceRoutes.post(
 );
 
 marketplaceRoutes.get("/polls", async (c) => {
+  const db = c.get("db");
   const activePolls = await db
     .select({
       id: polls.id,
@@ -469,6 +478,7 @@ marketplaceRoutes.get("/polls", async (c) => {
 });
 
 marketplaceRoutes.post("/polls/:id/vote", requireAuth, zValidator("json", pollVoteSchema), async (c) => {
+  const db = c.get("db");
   const pollId = c.req.param("id");
   const { vote } = c.req.valid("json");
 
@@ -488,6 +498,7 @@ marketplaceRoutes.post("/polls/:id/vote", requireAuth, zValidator("json", pollVo
 });
 
 marketplaceRoutes.post("/tenders/:id/comment", requireAuth, zValidator("json", commentSchema), async (c) => {
+  const db = c.get("db");
   const tenderId = c.req.param("id");
   const currentUser = c.get("user");
   const { content } = c.req.valid("json");

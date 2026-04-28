@@ -17,8 +17,8 @@ const ngoRoutes = new Hono<{
 
 ngoRoutes.post("/onboard", requireAuth, zValidator("json", ngoOnboardSchema), async (c) => {
   const currentUser = c.get("user");
-  const db = c.get("db" as any);
-  const auth = c.get("auth" as any);
+  const db = c.get("db");
+  const auth = c.get("auth");
   const body = c.req.valid("json");
 
   const existingNgo = await db.query.ngo.findFirst({

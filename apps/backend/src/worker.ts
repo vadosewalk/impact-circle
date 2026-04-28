@@ -26,38 +26,42 @@ const app = new Hono<{ Bindings: Bindings }>();
 app.onError(errorHandler);
 app.notFound(notFoundHandler);
 
+let cachedDb: any = null;
+let cachedAuth: any = null;
+
 // Initialize DB and Auth in middleware to use Bindings
 app.use("*", async (c, next) => {
-  const db = createDb(c.env.DATABASE_URL);
-  const auth = getAuth(db, {
-    BETTER_AUTH_URL: c.env.BETTER_AUTH_URL,
-    BETTER_AUTH_SECRET: c.env.BETTER_AUTH_SECRET,
-    GOOGLE_CLIENT_ID: c.env.GOOGLE_CLIENT_ID,
-    GOOGLE_CLIENT_SECRET: c.env.GOOGLE_CLIENT_SECRET,
-    FRONTEND_URL: c.env.FRONTEND_URL,
-    RESEND_API_KEY: c.env.RESEND_API_KEY,
-    EMAIL_FROM: c.env.EMAIL_FROM,
-  });
-  
-  c.set("db" as any, db);
-  c.set("auth" as any, auth);
-  
+  if (!cachedDb) {
+    cachedDb = createDb(c.env.DATABASE_URL);
+  }
+
+  if (!cachedAuth) {
+    cachedAuth = getAuth(cachedDb, {
+      BETTER_AUTH_URL: c.env.BETTER_AUTH_URL,
+      BETTER_AUTH_SECRET: c.env.BETTER_AUTH_SECRET,
+      GOOGLE_CLIENT_ID: c.env.GOOGLE_CLIENT_ID,
+      GOOGLE_CLIENT_SECRET: c.env.GOOGLE_CLIENT_SECRET,
+      FRONTEND_URL: c.env.FRONTEND_URL,
+      RESEND_API_KEY: c.env.RESEND_API_KEY,
+      EMAIL_FROM: c.env.EMAIL_FROM,
+    });
+  }
+
+  c.set("db" as any, cachedDb);
+  c.set("auth" as any, cachedAuth);
+
   await next();
 });
-
 // CORS Middleware
-app.use(
-  "*",
-  async (c, next) => {
-    const middleware = cors({
-        origin: [c.env.FRONTEND_URL || "http://localhost:3000"],
-        credentials: true,
-        allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allowHeaders: ["Content-Type", "Authorization"],
-      });
-    return middleware(c, next);
-  }
-);
+app.use("*", async (c, next) => {
+  const middleware = cors({
+    origin: [c.env.FRONTEND_URL || "http://localhost:3000"],
+    credentials: true,
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization"],
+  });
+  return middleware(c, next);
+});
 
 // Session Middleware
 app.use("*", sessionMiddleware);
