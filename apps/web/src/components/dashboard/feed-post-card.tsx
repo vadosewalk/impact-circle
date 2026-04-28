@@ -154,6 +154,16 @@ export function FeedPostCard({ type, data }: FeedPostCardProps) {
                 SUPPORT
               </Button>
             )}
+            <Link href={`/messages?user=${isTender ? data.userId : data.ngo?.userId}`}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-[11px] font-bold text-muted-foreground hover:bg-muted/80 rounded-sm"
+              >
+                <MessageSquare className="size-3.5 mr-2" />
+                DIRECT HANDSHAKE
+              </Button>
+            </Link>
           </div>
           <Link href={`/${isTender ? "tenders" : "ngo/drives"}/${data.id}`} className="shrink-0">
             <Button
