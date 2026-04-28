@@ -6,9 +6,10 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
-    "pages:build": "npx @opennextjs/cloudflare build",
-    "preview": "npm run pages:build && wrangler dev",
-    "deploy": "npm run pages:build && wrangler deploy",
+    "postbuild": "opennextjs-cloudflare build",
+    "preview": "opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare deploy",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "start": "next start",
     "typecheck": "tsc --noEmit"
   },
