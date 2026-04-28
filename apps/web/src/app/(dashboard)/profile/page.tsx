@@ -51,8 +51,8 @@ export default function ProfilePage() {
                     </div>
                     <CardTitle className="text-4xl font-bold tracking-tight">{user?.name}</CardTitle>
                     <CardDescription className="text-base text-muted-foreground/80 font-medium flex items-center gap-2">
-                      {user?.role === "ngo" ? "Registered NGO" : "Volunteer & Donor"} 
-                      <span className="text-border">•</span> 
+                      {user?.role === "ngo" ? "Registered NGO" : "Volunteer & Donor"}
+                      <span className="text-border">•</span>
                       {user?.email}
                     </CardDescription>
                   </div>
@@ -69,7 +69,9 @@ export default function ProfilePage() {
                 <CardContent className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Hours</p>
-                    <div className="size-6 rounded bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">1</div>
+                    <div className="size-6 rounded bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
+                      1
+                    </div>
                   </div>
                   <div className="flex items-baseline gap-2">
                     <h4 className="text-4xl font-black tracking-tighter">124</h4>
@@ -83,7 +85,9 @@ export default function ProfilePage() {
                 <CardContent className="p-6 relative z-10">
                   <div className="flex justify-between items-start mb-4">
                     <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Donations</p>
-                    <div className="size-6 rounded bg-background flex items-center justify-center text-primary text-xs font-bold shadow-sm">2</div>
+                    <div className="size-6 rounded bg-background flex items-center justify-center text-primary text-xs font-bold shadow-sm">
+                      2
+                    </div>
                   </div>
                   <h4 className="text-4xl font-black tracking-tighter">₹14,250</h4>
                 </CardContent>
@@ -93,7 +97,9 @@ export default function ProfilePage() {
                 <CardContent className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Projects</p>
-                    <div className="size-6 rounded bg-muted flex items-center justify-center text-muted-foreground text-xs font-bold">3</div>
+                    <div className="size-6 rounded bg-muted flex items-center justify-center text-muted-foreground text-xs font-bold">
+                      3
+                    </div>
                   </div>
                   <div className="flex items-baseline gap-2">
                     <h4 className="text-4xl font-black tracking-tighter">24</h4>
@@ -108,19 +114,25 @@ export default function ProfilePage() {
         {/* Right Pane: Trust Score & Details */}
         <div className="space-y-6">
           <Card className="border-primary/10 shadow-lg relative overflow-hidden h-[300px] flex flex-col items-center justify-center bg-gradient-to-b from-background to-muted/20">
-            <div className="absolute top-4 left-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Trust Score</div>
-            
+            <div className="absolute top-4 left-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              Trust Score
+            </div>
+
             <div className="relative size-48 flex items-center justify-center">
               {/* Fake gradient ring */}
               <div className="absolute inset-0 rounded-full border-[12px] border-primary/20" />
               <div className="absolute inset-0 rounded-full border-[12px] border-transparent border-t-primary border-r-primary rotate-45 shadow-[0_0_30px_rgba(var(--primary),0.3)]" />
-              
+
               <div className="text-center flex flex-col items-center justify-center">
-                <span className="text-6xl font-black tracking-tighter text-primary drop-shadow-sm">{user?.trustScore || 98}</span>
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">{user?.trustScore || 98}/100</span>
+                <span className="text-6xl font-black tracking-tighter text-primary drop-shadow-sm">
+                  {user?.trustScore || 98}
+                </span>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
+                  {user?.trustScore || 98}/100
+                </span>
               </div>
             </div>
-            
+
             <div className="mt-6 text-center">
               <Badge className="bg-emerald-500/10 text-emerald-500 border-none px-4 py-1 text-xs uppercase font-black tracking-widest">
                 Exceptional
@@ -130,7 +142,9 @@ export default function ProfilePage() {
 
           <Card className="border-border">
             <CardHeader className="p-5 pb-2">
-              <CardTitle className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Recent Activity</CardTitle>
+              <CardTitle className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                Recent Activity
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-5 space-y-4">
               <div className="flex items-center justify-between">

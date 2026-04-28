@@ -16,7 +16,8 @@ export default function NgoDrivePage() {
         </div>
         <h1 className="text-2xl font-black uppercase tracking-tight">Verified NGO Drive</h1>
         <p className="text-muted-foreground max-w-lg">
-          This drive is currently being verified by the Impact Circle trust protocol. Detailed impact metrics, fund allocation, and volunteer requirements will be available shortly.
+          This drive is currently being verified by the Impact Circle trust protocol. Detailed impact metrics, fund
+          allocation, and volunteer requirements will be available shortly.
         </p>
       </Card>
     </div>

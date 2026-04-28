@@ -11,7 +11,7 @@ export function FullWidthDivider({ position = "top", className, ...props }: Full
       className={cn(
         "absolute left-0 right-0 h-px bg-border w-screen -ml-[50vw] left-1/2",
         position === "top" ? "top-0" : "bottom-0",
-        className
+        className,
       )}
       {...props}
     />

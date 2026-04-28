@@ -25,7 +25,11 @@ export function SocialLogins() {
 
   return (
     <div className="space-y-2">
-      <Button variant="outline" className="w-full font-bold italic flex flex-row items-center justify-center gap-2" onClick={handleGoogleSignIn}>
+      <Button
+        variant="outline"
+        className="w-full font-bold italic flex flex-row items-center justify-center gap-2"
+        onClick={handleGoogleSignIn}
+      >
         <GoogleIcon className="size-4 shrink-0" />
         <span>Continue with Google</span>
       </Button>

@@ -15,9 +15,7 @@ export default function NgoDrivesIndexPage() {
           <ShieldCheck className="size-8" />
         </div>
         <h1 className="text-2xl font-black uppercase tracking-tight">NGO Drives Directory</h1>
-        <p className="text-muted-foreground max-w-lg">
-          Browse verified drives from registered NGOs.
-        </p>
+        <p className="text-muted-foreground max-w-lg">Browse verified drives from registered NGOs.</p>
       </Card>
     </div>
   );

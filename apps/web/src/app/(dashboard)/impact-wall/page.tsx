@@ -68,7 +68,7 @@ export default function ImpactWallPage() {
             </CardHeader>
             <CardContent className="p-6 pt-0 space-y-4">
               <p className="leading-relaxed">{post.content}</p>
-              
+
               {/* Media Placeholder */}
               {post.type === "ngo" && (
                 <div className="h-48 rounded-xl bg-muted border flex items-center justify-center text-muted-foreground italic font-mono text-xs">
@@ -78,7 +78,11 @@ export default function ImpactWallPage() {
 
               <div className="flex flex-wrap gap-2">
                 {post.tags.map((tag) => (
-                  <Badge key={tag} variant="secondary" className="text-xs bg-primary/10 text-primary hover:bg-primary/20">
+                  <Badge
+                    key={tag}
+                    variant="secondary"
+                    className="text-xs bg-primary/10 text-primary hover:bg-primary/20"
+                  >
                     #{tag}
                   </Badge>
                 ))}

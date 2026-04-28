@@ -1,35 +1,35 @@
-"use client"
+"use client";
 
-import React from "react"
-import { useRef } from "react"
-import { cn } from "@impact/ui/lib/utils"
-import Image from "next/image"
-import { useMotionValueEvent, useScroll } from "motion/react"
+import React from "react";
+import { useRef } from "react";
+import { cn } from "@impact/ui/lib/utils";
+import Image from "next/image";
+import { useMotionValueEvent, useScroll } from "motion/react";
 
-export const centralColumnStyle = "w-[90%] max-w-[1340px] mx-auto"
-export const pageYPadding = "py-10 md:py-12 lg:py-20 xl:py-30 2xl:py-40"
-const defaultTitleClass = "text-2xl md:text-3xl font-semibold mb-2 text-foreground"
-const defaultDescriptionClass = "text-base md:text-lg font-medium mb-2 text-foreground max-w-[400px] leading-[130%]"
+export const centralColumnStyle = "w-[90%] max-w-[1340px] mx-auto";
+export const pageYPadding = "py-10 md:py-12 lg:py-20 xl:py-30 2xl:py-40";
+const defaultTitleClass = "text-2xl md:text-3xl font-semibold mb-2 text-foreground";
+const defaultDescriptionClass = "text-base md:text-lg font-medium mb-2 text-foreground max-w-[400px] leading-[130%]";
 const imageClass =
-  "absolute top-0 right-0 ml-auto w-auto h-full object-cover object-right rounded-2xl transition-opacity duration-300 shadow-2xl"
+  "absolute top-0 right-0 ml-auto w-auto h-full object-cover object-right rounded-2xl transition-opacity duration-300 shadow-2xl";
 
 export interface ItemContent {
-  title: string
-  description: string
+  title: string;
+  description: string;
   image: {
-    url: string
-    width: number
-    height: number
-    alt: string
-  }
+    url: string;
+    width: number;
+    height: number;
+    alt: string;
+  };
 }
 
 interface Props extends React.ComponentProps<"div"> {
-  contentA: ItemContent
-  contentB: ItemContent
-  contentC: ItemContent
-  titleClass?: string
-  descriptionClass?: string
+  contentA: ItemContent;
+  contentB: ItemContent;
+  contentC: ItemContent;
+  titleClass?: string;
+  descriptionClass?: string;
 }
 
 const ScrollRevealContentA = ({
@@ -41,16 +41,16 @@ const ScrollRevealContentA = ({
   className,
   ...props
 }: Props) => {
-  const [scrollProgress, setScrollProgress] = React.useState(0)
-  const ref0 = useRef(null)
+  const [scrollProgress, setScrollProgress] = React.useState(0);
+  const ref0 = useRef(null);
 
   const { scrollYProgress } = useScroll({
     target: ref0,
-  })
+  });
   useMotionValueEvent(scrollYProgress, "change", () => {
     // @ts-ignore
-    setScrollProgress(scrollYProgress.current)
-  })
+    setScrollProgress(scrollYProgress.current);
+  });
 
   return (
     <div className={cn("bg-background", className)} ref={ref0} {...props}>
@@ -118,20 +118,20 @@ const ScrollRevealContentA = ({
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default ScrollRevealContentA
+export default ScrollRevealContentA;
 
 const getBarPercentageHeight = (scrollProgress: number, thresholdStart: number, thresholdEnd: number) => {
   if (scrollProgress < thresholdStart) {
-    return 0
+    return 0;
   }
   if (scrollProgress > thresholdEnd) {
-    return 100
+    return 100;
   }
-  return ((scrollProgress - thresholdStart) / (thresholdEnd - thresholdStart)) * 100
-}
+  return ((scrollProgress - thresholdStart) / (thresholdEnd - thresholdStart)) * 100;
+};
 
 const PointItem = ({
   active,
@@ -142,16 +142,16 @@ const PointItem = ({
   thresholdEnd,
   scrollProgress,
 }: {
-  active: boolean
-  number: string
-  title: string
-  description: string
-  thresholdStart: number
-  thresholdEnd: number
-  scrollProgress: number
+  active: boolean;
+  number: string;
+  title: string;
+  description: string;
+  thresholdStart: number;
+  thresholdEnd: number;
+  scrollProgress: number;
 }) => {
-  const barHeightPercentage = getBarPercentageHeight(scrollProgress, thresholdStart, thresholdEnd)
-  const isActive = barHeightPercentage > 0
+  const barHeightPercentage = getBarPercentageHeight(scrollProgress, thresholdStart, thresholdEnd);
+  const isActive = barHeightPercentage > 0;
   return (
     <div className={cn("flex flex-col interactive w-full", active ? "opacity-100" : "opacity-50")}>
       <div className="w-full">
@@ -173,5 +173,5 @@ const PointItem = ({
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
