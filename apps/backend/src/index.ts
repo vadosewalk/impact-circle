@@ -11,6 +11,7 @@ import { marketplaceRoutes } from "./routes/marketplace";
 import { messageRoutes } from "./routes/messages";
 import { accountabilityRoutes } from "./routes/accountability";
 import { memberRoutes } from "./routes/members";
+import { notificationRoutes } from "./routes/notifications";
 import { errorHandler, notFoundHandler } from "./middleware/error";
 
 const auth = getAuth(db);
@@ -62,7 +63,7 @@ app.use(
 app.use("*", sessionMiddleware);
 
 // Better Auth Route Handler
-app.on(["POST", "GET"], "/api/auth/*", (c) => {
+app.all("/api/auth/*", (c) => {
   const auth = c.get("auth");
   return auth.handler(c.req.raw);
 });
@@ -74,6 +75,7 @@ app.route("/api/marketplace", marketplaceRoutes);
 app.route("/api/messages", messageRoutes);
 app.route("/api/accountability", accountabilityRoutes);
 app.route("/api/members", memberRoutes);
+app.route("/api/notifications", notificationRoutes);
 
 // Root Route - Redirect to Frontend
 app.get("/", (c) => {
