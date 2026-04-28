@@ -42,57 +42,48 @@ export function getAuth(
         invitation: schema.invitation,
       },
     }),
-    // baseURL should be the public-facing URL of the auth server.
-    // When using Next.js rewrites, this is the frontend URL.
-    baseURL: BETTER_AUTH_URL || FRONTEND_URL,
+    // CRITICAL FIX: BaseURL must always be the public-facing FRONTEND URL for redirects to work correctly.
+    baseURL: FRONTEND_URL,
     secret: BETTER_AUTH_SECRET,
+    
+    // Simplified Email & Password setup
     emailAndPassword: {
       enabled: true,
+      // NOTE: Email verification is off by default. No 'sendVerificationEmail' is configured.
+      // Add a placeholder for password reset to avoid crashes if called.
+      sendResetPassword: async ({ user, url }) => {
+        console.log(`Password reset requested for ${user.email}.`);
+        console.log(`In a real app, you would send an email with this URL: ${url}`);
+        // In the future, you can add your email sending logic here.
+        await Promise.resolve();
+      }
     },
+
+    // Google Provider
     socialProviders: {
       google: {
         clientId: GOOGLE_CLIENT_ID || "",
         clientSecret: GOOGLE_CLIENT_SECRET || "",
       },
     },
+
+    // Whitelist frontend origins for CSRF protection
     trustedOrigins: [FRONTEND_URL, "https://impact-circle-web.netlify.app"],
+    
     advanced: {
+      // This tells Better Auth to use the runtime env vars passed into getAuth,
+      // which is crucial for serverless environments.
       useRuntimeConfig: true,
     },
+
     plugins: [
       organization({
         allowUserToCreateOrganization: true,
-        sendInvitationEmail: async (data) => {
-          const { email, organization, inviter, invitation } = data;
-          await sendEmail(
-            {
-              to: email,
-              subject: `Join ${organization.name} on Impact Circle`,
-              html: `
-              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
-                <h1 style="color: #7c3aed; margin-bottom: 24px;">Impact Circle</h1>
-                <p style="font-size: 16px; line-height: 1.6; color: #1e1b4b;">
-                  <strong>${inviter.user.name}</strong> has invited you to join <strong>${organization.name}</strong> as an <strong>${invitation.role}</strong>.
-                </p>
-                <p style="font-size: 16px; line-height: 1.6; color: #1e1b4b; margin-bottom: 32px;">
-                  Impact Circle is a transparent marketplace for social impact. Join your team to start coordinating community aid.
-                </p>
-                <a href="${FRONTEND_URL}/accept-invite?id=${invitation.id}" 
-                   style="display: inline-block; background-color: #7c3aed; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">
-                  Accept Invitation
-                </a>
-                <p style="font-size: 12px; color: #64748b; margin-top: 32px;">
-                  This invitation will expire in 48 hours. If you didn't expect this invitation, you can safely ignore this email.
-                </p>
-              </div>
-            `,
-            },
-            RESEND_API_KEY,
-            EMAIL_FROM,
-          );
-        },
+        // REMOVED: sendInvitationEmail handler to decouple from Resend.
+        // Invitations will be link-based until a new email provider is added.
       }),
     ],
+
     user: {
       additionalFields: {
         role: {
