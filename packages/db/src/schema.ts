@@ -464,3 +464,40 @@ export const categoryRelations = relations(categories, ({ one, many }) => ({
     references: [polls.categoryId],
   }),
 }));
+
+export const commentRelations = relations(comments, ({ one }) => ({
+  user: one(user, {
+    fields: [comments.userId],
+    references: [user.id],
+  }),
+  tender: one(tenders, {
+    fields: [comments.tenderId],
+    references: [tenders.id],
+  }),
+  drive: one(drives, {
+    fields: [comments.driveId],
+    references: [drives.id],
+  }),
+}));
+
+export const beneficiaryUpdatesRelations = relations(beneficiaryUpdates, ({ one }) => ({
+  tender: one(tenders, {
+    fields: [beneficiaryUpdates.tenderId],
+    references: [tenders.id],
+  }),
+  user: one(user, {
+    fields: [beneficiaryUpdates.userId],
+    references: [user.id],
+  }),
+}));
+
+export const driveUpdatesRelations = relations(driveUpdates, ({ one }) => ({
+  drive: one(drives, {
+    fields: [driveUpdates.driveId],
+    references: [drives.id],
+  }),
+  user: one(user, {
+    fields: [driveUpdates.userId],
+    references: [user.id],
+  }),
+}));

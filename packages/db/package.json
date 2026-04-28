@@ -13,6 +13,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:pull": "drizzle-kit pull",
+    "db:seed": "tsx src/seed.ts",
     "db:studio": "drizzle-kit studio"
   },
   "keywords": [],
@@ -26,6 +27,7 @@
     "postgres": "^3.4.9"
   },
   "devDependencies": {
+    "@faker-js/faker": "^10.4.0",
     "@impact/typescript-config": "workspace:*",
     "@types/node": "^25.6.0",
     "drizzle-kit": "^0.31.10",
