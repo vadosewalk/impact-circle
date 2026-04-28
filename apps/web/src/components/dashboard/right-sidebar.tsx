@@ -16,8 +16,9 @@ export function RightSidebar() {
     <div className="flex flex-col h-full p-5 gap-6">
       <div className="flex flex-col gap-2">
         <Link href="/tenders/create" className="w-full">
-          <Button className="w-full justify-center gap-2 shadow-sm font-semibold" size="lg">
-            <Plus className="size-4" /> CREATE POST
+          <Button className="relative w-full shadow-sm font-semibold" size="lg">
+            <Plus className="absolute left-4 size-4" />
+            CREATE POST
           </Button>
         </Link>
         <p className="text-[10px] text-center text-muted-foreground font-medium uppercase tracking-tight">
