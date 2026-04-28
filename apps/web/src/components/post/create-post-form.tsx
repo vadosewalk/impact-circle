@@ -37,7 +37,7 @@ export function CreatePostForm({ categories }: CreatePostFormProps) {
 
   // Tender-specific State
   const [urgency, setUrgency] = useState("normal");
-  
+
   // Drive-specific State
   const [targetFunds, setTargetFunds] = useState("");
   const [targetVolunteers, setTargetVolunteers] = useState("");
@@ -65,11 +65,11 @@ export function CreatePostForm({ categories }: CreatePostFormProps) {
       toast.error("Please select a category");
       return;
     }
-    if (postType === 'drive' && !session?.user.role?.includes('ngo')) {
+    if (postType === "drive" && !session?.user.role?.includes("ngo")) {
       toast.error("Only verified NGOs can create drives.");
       return;
     }
-    
+
     setIsSubmitting(true);
 
     const endpoint = postType === "tender" ? "/api/marketplace/tenders" : "/api/marketplace/drives";
@@ -80,15 +80,15 @@ export function CreatePostForm({ categories }: CreatePostFormProps) {
       latitude: location?.lat,
       longitude: location?.lng,
       ...(postType === "tender" && { urgency }),
-      ...(postType === "drive" && { 
-        targetFunds, 
-        targetVolunteers: targetVolunteers ? parseInt(targetVolunteers, 10) : undefined 
+      ...(postType === "drive" && {
+        targetFunds,
+        targetVolunteers: targetVolunteers ? parseInt(targetVolunteers, 10) : undefined,
       }),
     };
 
     try {
       await api.post(endpoint, payload);
-      toast.success(`'${postType === 'tender' ? 'Need' : 'Drive'}' posted successfully!`);
+      toast.success(`'${postType === "tender" ? "Need" : "Drive"}' posted successfully!`);
       router.push("/dashboard");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : `Failed to post ${postType}`;
@@ -111,27 +111,35 @@ export function CreatePostForm({ categories }: CreatePostFormProps) {
             </TabsTrigger>
           </TabsList>
         </Tabs>
-        
+
         <FieldGroup>
           <Field>
             <FieldLabel htmlFor="title">Title</FieldLabel>
             <Input
               id="title"
-              placeholder={postType === 'tender' ? 'e.g. Need medical supplies for local clinic' : 'e.g. Annual Winter Blanket Drive'}
+              placeholder={
+                postType === "tender"
+                  ? "e.g. Need medical supplies for local clinic"
+                  : "e.g. Annual Winter Blanket Drive"
+              }
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
             />
           </Field>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Field>
               <FieldLabel htmlFor="category">Category</FieldLabel>
               <Select value={categoryId} onValueChange={setCategoryId}>
-                <SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
                 <SelectContent>
                   {categories.map((cat: Category) => (
-                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -140,7 +148,9 @@ export function CreatePostForm({ categories }: CreatePostFormProps) {
               <Field>
                 <FieldLabel htmlFor="urgency">Urgency Level</FieldLabel>
                 <Select value={urgency} onValueChange={setUrgency}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="normal">Normal</SelectItem>
                     <SelectItem value="urgent">Urgent (SOS)</SelectItem>
@@ -148,7 +158,7 @@ export function CreatePostForm({ categories }: CreatePostFormProps) {
                 </Select>
               </Field>
             ) : (
-               <Field>
+              <Field>
                 <FieldLabel htmlFor="targetVolunteers">Volunteers Required</FieldLabel>
                 <Input
                   id="targetVolunteers"
@@ -160,7 +170,7 @@ export function CreatePostForm({ categories }: CreatePostFormProps) {
               </Field>
             )}
           </div>
-          
+
           <Field>
             <FieldLabel htmlFor="description">Detailed Description</FieldLabel>
             <Textarea
@@ -172,24 +182,26 @@ export function CreatePostForm({ categories }: CreatePostFormProps) {
               required
             />
           </Field>
-          
-           {postType === "drive" && (
-             <Field>
-                <FieldLabel htmlFor="targetFunds">Funding Goal (INR)</FieldLabel>
-                <Input
-                  id="targetFunds"
-                  type="number"
-                  placeholder="e.g. 50000"
-                  value={targetFunds}
-                  onChange={(e) => setTargetFunds(e.target.value)}
-                />
-              </Field>
-           )}
+
+          {postType === "drive" && (
+            <Field>
+              <FieldLabel htmlFor="targetFunds">Funding Goal (INR)</FieldLabel>
+              <Input
+                id="targetFunds"
+                type="number"
+                placeholder="e.g. 50000"
+                value={targetFunds}
+                onChange={(e) => setTargetFunds(e.target.value)}
+              />
+            </Field>
+          )}
 
           <div className="pt-4">
             <Button type="button" variant="outline" className="w-full md:w-auto" onClick={handleGetLocation}>
               <MapPin className="size-4 mr-2" />
-              {location ? `Location Captured: ${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}` : "Attach Current Location"}
+              {location
+                ? `Location Captured: ${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`
+                : "Attach Current Location"}
             </Button>
             <p className="text-xs text-muted-foreground mt-2">
               Attaching your location helps local supporters find your post faster.
@@ -202,7 +214,7 @@ export function CreatePostForm({ categories }: CreatePostFormProps) {
           Cancel
         </Button>
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Submitting..." : `Post ${postType === 'tender' ? 'Need' : 'Drive'}`}
+          {isSubmitting ? "Submitting..." : `Post ${postType === "tender" ? "Need" : "Drive"}`}
         </Button>
       </CardFooter>
     </form>

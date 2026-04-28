@@ -6,7 +6,27 @@ import { Badge } from "@impact/ui/components/badge";
 import { useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, ShieldCheck, CheckCircle2, Users, Lock, Search, Handshake } from "lucide-react";
+import { ArrowRight, ShieldCheck } from "lucide-react";
+import { Header } from "@/components/header";
+import { FeatureSection } from "@/components/feature-section";
+import ScrollRevealContentA from "@/components/scroll-reveal-content-a";
+import { Logo } from "@/components/ui-elements/logo";
+
+const contentA = {
+  title: "Universal Profile",
+  description: "Seamlessly switch between donor, volunteer, or beneficiary roles with a unified reputation system.",
+  image: { url: "https://images.unsplash.com/photo-1593113563332-4d40b7952a65?q=80&w=800&auto=format&fit=crop", width: 800, height: 600, alt: "Universal Profile" }
+};
+const contentB = {
+  title: "Needs Board",
+  description: "A standardized tender system for community requests, ensuring transparency and equal opportunity.",
+  image: { url: "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?q=80&w=800&auto=format&fit=crop", width: 800, height: 600, alt: "Needs Board" }
+};
+const contentC = {
+  title: "Resource Drives",
+  description: "NGO-led initiatives with real-time tracking, making community coordination highly effective.",
+  image: { url: "https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=800&auto=format&fit=crop", width: 800, height: 600, alt: "Resource Drives" }
+};
 
 export default function HomePage() {
   const { data: session, isPending } = useSession();
@@ -28,53 +48,43 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/10">
-      <nav className="border-b h-16 sticky top-0 bg-background/80 backdrop-blur-sm z-50">
-        <div className="max-w-7xl mx-auto h-full px-4 md:px-6 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="size-6 rounded bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm">
-              I
-            </div>
-            <span className="font-bold tracking-tight">Impact Circle</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link href="/sign-in">
-              <Button variant="ghost" size="sm">
-                Sign In
-              </Button>
-            </Link>
-            <Link href="/sign-up">
-              <Button size="sm">Get Started</Button>
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <Header />
 
       <main>
         {/* Hero Section */}
-        <section className="py-24 md:py-32 border-b">
-          <div className="max-w-7xl mx-auto px-4 md:px-6 text-center">
+        <section className="relative overflow-hidden py-24 md:py-32 lg:py-40 border-b">
+          {/* Subtle background effects */}
+          <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background" />
+          <div className="absolute top-0 right-0 -translate-y-12 translate-x-1/3 pointer-events-none">
+            <div className="w-[400px] h-[400px] md:w-[600px] md:h-[600px] rounded-full bg-primary/5 blur-[100px]" />
+          </div>
+          <div className="absolute bottom-0 left-0 translate-y-1/3 -translate-x-1/3 pointer-events-none">
+            <div className="w-[300px] h-[300px] rounded-full bg-primary/5 blur-[80px]" />
+          </div>
+
+          <div className="max-w-7xl mx-auto px-4 md:px-6 text-center relative z-10">
             <Badge
               variant="outline"
-              className="mb-6 rounded-full px-3 py-1 font-medium text-muted-foreground border-border"
+              className="mb-8 rounded-full px-4 py-1.5 font-medium text-muted-foreground border-border bg-background/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all cursor-default"
             >
               The Transparency Ledger for NGOs
             </Badge>
-            <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6 max-w-4xl mx-auto leading-[1.1]">
-              Social impact driven by evidence, <br className="hidden md:block" />
-              not just intentions.
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tighter mb-6 max-w-4xl mx-auto leading-[1.05]">
+              Social impact driven by <br className="hidden md:block" />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/60">evidence</span>, not just intentions.
             </h1>
-            <p className="text-lg text-muted-foreground mb-10 max-w-2xl mx-auto font-medium">
+            <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto font-medium leading-relaxed">
               Impact Circle connects verified NGOs with donors and volunteers through a secure marketplace built on 100%
               proof of action.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link href="/sign-up">
-                <Button size="lg" className="h-12 px-8 font-semibold gap-2">
+                <Button size="lg" className="h-14 px-8 font-semibold gap-2 shadow-lg shadow-primary/25 hover:scale-[1.02] active:scale-[0.98] transition-all text-base rounded-full">
                   Post a Need <ArrowRight className="size-4" />
                 </Button>
               </Link>
               <Link href="/onboard">
-                <Button size="lg" variant="outline" className="h-12 px-8 font-semibold gap-2">
+                <Button size="lg" variant="outline" className="h-14 px-8 font-semibold gap-2 bg-background/50 backdrop-blur-sm hover:bg-muted/50 hover:scale-[1.02] active:scale-[0.98] transition-all text-base rounded-full">
                   Register as NGO <ShieldCheck className="size-4" />
                 </Button>
               </Link>
@@ -82,101 +92,52 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Features Grid */}
-        <section className="py-24 bg-muted/20">
-          <div className="max-w-7xl mx-auto px-4 md:px-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-              <div className="space-y-4">
-                <div className="size-10 rounded bg-primary/10 flex items-center justify-center text-primary">
-                  <Lock className="size-5" />
-                </div>
-                <h3 className="text-xl font-bold">Fort Knox Onboarding</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Rigorous manual verification process for all organizations. We audit documentation and mission
-                  legitimacy before they can operate.
-                </p>
-              </div>
-              <div className="space-y-4">
-                <div className="size-10 rounded bg-primary/10 flex items-center justify-center text-primary">
-                  <CheckCircle2 className="size-5" />
-                </div>
-                <h3 className="text-xl font-bold">Radical Accountability</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Mandatory geotagged updates and receipts for every drive. Trust is built through a public ledger of
-                  verified impact scores.
-                </p>
-              </div>
-              <div className="space-y-4">
-                <div className="size-10 rounded bg-primary/10 flex items-center justify-center text-primary">
-                  <Handshake className="size-5" />
-                </div>
-                <h3 className="text-xl font-bold">Direct Handshake</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Connect directly with those in need or those providing aid. No hidden intermediaries—just purposeful,
-                  localized community action.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
+        {/* Dynamic Scroll Features */}
+        <div className="relative border-b bg-muted/5">
+          <ScrollRevealContentA 
+            contentA={contentA} 
+            contentB={contentB} 
+            contentC={contentC} 
+            className="bg-transparent"
+          />
+        </div>
 
-        {/* Dashboard Preview Section */}
-        <section className="py-24 border-t">
-          <div className="max-w-7xl mx-auto px-4 md:px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div className="space-y-6">
-              <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
-                A structured marketplace for <br /> community coordination.
-              </h2>
-              <ul className="space-y-4">
-                {[
-                  "Universal Profile: Switch between donor, volunteer, or beneficiary.",
-                  "Needs Board: Standardized tender system for community requests.",
-                  "Resource Drives: NGO-led initiatives with real-time tracking.",
-                  "Governance: Participate in community polls to shape the platform.",
-                ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <CheckCircle2 className="size-5 text-primary mt-0.5 shrink-0" />
-                    <span className="text-sm font-medium">{item}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="pt-4">
-                <Link href="/sign-up">
-                  <Button variant="outline" className="font-semibold">
-                    Join the Circle
-                  </Button>
-                </Link>
-              </div>
+        {/* Feature Grid Section */}
+        <section className="relative overflow-hidden bg-background py-16 md:py-24">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+            <div className="w-[800px] h-[400px] bg-primary/5 blur-[120px] rounded-full" />
+          </div>
+          <div className="relative z-10">
+            <div className="text-center mb-16 px-4">
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">Built for Trust</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Our infrastructure guarantees that every contribution is tracked, verified, and delivered to where it's needed most.
+              </p>
             </div>
-            <div className="border rounded-xl bg-muted p-4 shadow-sm">
-              <div className="aspect-video rounded bg-background border shadow-inner flex items-center justify-center text-muted-foreground text-xs font-mono italic">
-                [ Dashboard Preview ]
-              </div>
-            </div>
+            <FeatureSection />
           </div>
         </section>
       </main>
 
-      <footer className="py-12 border-t text-center">
-        <div className="max-w-7xl mx-auto px-4 md:px-6">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="size-5 rounded bg-primary flex items-center justify-center text-primary-foreground font-bold text-[10px]">
-              I
-            </div>
-            <span className="font-bold text-sm">Impact Circle</span>
+      <footer className="py-16 border-t bg-muted/20 text-center">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 flex flex-col items-center">
+          <div className="mb-8">
+            <Logo className="scale-75 origin-center text-primary/80" />
           </div>
-          <p className="text-xs text-muted-foreground mb-8">© 2026 Impact Circle. All rights reserved.</p>
-          <div className="flex justify-center gap-6 text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-            <Link href="/terms" className="hover:text-foreground">
+          <div className="flex justify-center gap-8 text-xs font-bold text-muted-foreground uppercase tracking-widest mb-8">
+            <Link href="/terms" className="hover:text-foreground transition-colors">
               Terms
             </Link>
-            <Link href="/privacy" className="hover:text-foreground">
+            <Link href="/privacy" className="hover:text-foreground transition-colors">
               Privacy
             </Link>
-            <Link href="/contact" className="hover:text-foreground">
+            <Link href="/contact" className="hover:text-foreground transition-colors">
               Contact
             </Link>
           </div>
+          <p className="text-[10px] text-muted-foreground/60 uppercase tracking-widest font-bold">
+            © 2026 Impact Circle. All rights reserved.
+          </p>
         </div>
       </footer>
     </div>

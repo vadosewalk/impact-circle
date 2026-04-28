@@ -23,6 +23,7 @@
   "registries": {
     "@efferd": "https://efferd.com/r/{style}/{name}.json",
     "@lucide-animated": "https://lucide-animated.com/r/{name}.json",
-    "@tool-ui": "https://www.tool-ui.com/r/{name}.json"
+    "@tool-ui": "https://www.tool-ui.com/r/{name}.json",
+    "@abui": "https://abui.io/r/{name}.json"
   }
 }
