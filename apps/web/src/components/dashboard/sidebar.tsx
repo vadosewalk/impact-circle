@@ -2,7 +2,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@impact/ui/components/avatar";
 import { cn } from "@impact/ui/lib/utils";
-import { Bell, HandHeart, Home, MessageSquare, Settings, ShieldCheck } from "lucide-react";
+import { Bell, HandHeart, Home, MessageSquare, Settings, ShieldCheck, User, ListTodo } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
@@ -11,10 +11,11 @@ import { ProfileDropdown } from "./profile-dropdown";
 import { LatestProtocolUpdate } from "./protocol-update";
 
 const navItems = [
-  { label: "Timeline", href: "/dashboard", icon: Home },
+  { label: "Impact Wall", href: "/impact-wall", icon: ListTodo },
   { label: "Needs Board", href: "/tenders", icon: HandHeart },
   { label: "NGO Drives", href: "/ngo/drives", icon: ShieldCheck },
-  { label: "Handshakes", href: "/messages", icon: MessageSquare },
+  { label: "Universal Profile", href: "/profile", icon: User },
+  { label: "Chat", href: "/messages", icon: MessageSquare },
   { label: "Notifications", href: "/notifications", icon: Bell },
 ];
 
