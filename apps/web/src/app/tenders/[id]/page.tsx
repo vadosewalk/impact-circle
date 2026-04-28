@@ -140,7 +140,7 @@ export default function TenderDetailPage() {
                 </Button>
                 <Link href={`/messages?user=${tender.user.id}`}>
                   <Button variant="outline" size="sm" className="h-8 gap-2 font-bold text-xs uppercase tracking-wider">
-                    <MessageSquare className="size-3.5" /> Direct Handshake
+                    <MessageSquare className="size-3.5" /> Direct Message
                   </Button>
                 </Link>
                 <Button variant="default" size="sm" className="h-8 gap-2 font-bold text-xs uppercase tracking-wider">
@@ -170,7 +170,7 @@ export default function TenderDetailPage() {
                   disabled={isSubmitting || !comment.trim()}
                   className="font-bold text-xs uppercase tracking-widest h-8"
                 >
-                  Post Handshake
+                  Post Comment
                 </Button>
               </div>
             </form>
@@ -283,7 +283,7 @@ export default function TenderDetailPage() {
           {/* Rules/Info */}
           <div className="p-4 bg-orange-50/50 border border-orange-100 rounded-sm space-y-2">
             <div className="flex items-center gap-2 text-orange-700 font-bold text-[10px] uppercase tracking-widest">
-              <AlertCircle className="size-3.5" /> Handshake Protocol
+              <AlertCircle className="size-3.5" /> Impact Protocol
             </div>
             <p className="text-[11px] text-orange-900/70 leading-normal">
               Every pledge on Impact Circle is a binding promise. Funds are held in transparency and released upon proof

@@ -13,9 +13,9 @@ import ScrollRevealContentA from "@/components/scroll-reveal-content-a";
 import { Logo } from "@/components/ui-elements/logo";
 
 const contentA = {
-  title: "Universal Profile",
-  description: "Seamlessly switch between donor, volunteer, or beneficiary roles with a unified reputation system.",
-  image: { url: "https://images.unsplash.com/photo-1593113563332-4d40b7952a65?q=80&w=800&auto=format&fit=crop", width: 800, height: 600, alt: "Universal Profile" }
+  title: "Impact Wall",
+  description: "Stay updated with the latest community needs and verified NGO drives in real-time.",
+  image: { url: "/impact-wall.png", width: 1200, height: 800, alt: "Impact Wall Dashboard" }
 };
 const contentB = {
   title: "Needs Board",
@@ -79,13 +79,15 @@ export default function HomePage() {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link href="/sign-up">
-                <Button size="lg" className="h-14 px-8 font-semibold gap-2 shadow-lg shadow-primary/25 hover:scale-[1.02] active:scale-[0.98] transition-all text-base rounded-full">
-                  Post a Need <ArrowRight className="size-4" />
+                <Button size="lg" className="flex flex-row items-center justify-center h-14 px-8 font-semibold gap-2 shadow-lg shadow-primary/25 hover:scale-[1.02] active:scale-[0.98] transition-all text-base rounded-full">
+                  <span>Post a Need</span>
+                  <ArrowRight className="size-4 shrink-0" />
                 </Button>
               </Link>
               <Link href="/onboard">
-                <Button size="lg" variant="outline" className="h-14 px-8 font-semibold gap-2 bg-background/50 backdrop-blur-sm hover:bg-muted/50 hover:scale-[1.02] active:scale-[0.98] transition-all text-base rounded-full">
-                  Register as NGO <ShieldCheck className="size-4" />
+                <Button size="lg" variant="outline" className="flex flex-row items-center justify-center h-14 px-8 font-semibold gap-2 bg-background/50 backdrop-blur-sm hover:bg-muted/50 hover:scale-[1.02] active:scale-[0.98] transition-all text-base rounded-full">
+                  <span>Register as NGO</span>
+                  <ShieldCheck className="size-4 shrink-0" />
                 </Button>
               </Link>
             </div>

@@ -46,9 +46,7 @@ async function CreatePostContent() {
       <Card>
         <CardHeader>
           <CardTitle className="text-3xl font-black tracking-tighter">Create a Post</CardTitle>
-          <CardDescription>
-            Share a community need (Tender) or announce a new NGO initiative (Drive).
-          </CardDescription>
+          <CardDescription>Share a community need (Tender) or announce a new NGO initiative (Drive).</CardDescription>
         </CardHeader>
         <CreatePostForm categories={categories} />
       </Card>

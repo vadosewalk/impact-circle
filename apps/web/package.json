@@ -14,7 +14,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@impact/db": "workspace:*",
     "@impact/ui": "workspace:*",
     "@tanstack/db": "^0.6.5",
     "@tanstack/react-db": "^0.1.83",
